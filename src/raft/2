@@ -1,1918 +1,705 @@
 peer:2,make
-peer:2,lastRecv:1556216416137
-peer:2,loop:0, now:1556216416138
-peer:2,loop:1, now:1556216416149
-peer:2,loop:2, now:1556216416160
-peer:2,loop:3, now:1556216416171
-peer:2,loop:4, now:1556216416182
-peer:2,loop:5, now:1556216416193
-peer:2,loop:6, now:1556216416203
-peer:2,loop:7, now:1556216416214
-peer:2,loop:8, now:1556216416225
-peer:2,loop:9, now:1556216416236
-peer:2,loop:10, now:1556216416247
-peer:2,loop:11, now:1556216416258
-peer:2,loop:12, now:1556216416269
-peer:2,loop:13, now:1556216416280
-peer:2,loop:14, now:1556216416291
-peer:2,loop:15, now:1556216416302
-peer:2,loop:16, now:1556216416313
-peer:2,loop:17, now:1556216416324
-peer:2,loop:18, now:1556216416335
-peer:2,loop:19, now:1556216416346
-peer:2,loop:20, now:1556216416357
-peer:2,loop:21, now:1556216416368
-peer:2,loop:22, now:1556216416379
-peer:2,loop:23, now:1556216416390
+peer:2,lastRecv:1557231240329
+peer:2,loop:0, now:1557231240329, lastrecv:1557231240329,diff:0,interval:120
+peer:2,loop:1, now:1557231240382, lastrecv:1557231240329,diff:53,interval:120
+peer:2,loop:2, now:1557231240433, lastrecv:1557231240329,diff:104,interval:120
+peer:2,loop:3, now:1557231240483, lastrecv:1557231240329,diff:154,interval:120
 peer:2,startLeaderElection
-peer:2,lastrecv:1556216416137
-peer:2,now:1556216416390
-peer:2,in startLeaderElection
-peer:2,toserver:1, in GoLeaderElection
-peer:2,toserver:0, in GoLeaderElection
-peer:2,toserver:1, sendRequestVote success
-peer:2,reply:false,1
-peer:2,toserver:0, sendRequestVote success
-peer:2,reply:false,1
-peer:2,recv over,need election again,need sleep 39ms
-peer:2,recv voterequest from 0, his term:1, my term:1
-peer:2,case 3
+peer:2,lastrecv:1557231240329
+peer:2,recv voterequest from 0, his term:1, my term:0
+peer:2,case 1, start loop
+peer:2,in persist
+peer:2,persist over
 peer:2,recv voterequest from 1, his term:1, my term:1
 peer:2,case 3
+peer:2,now:1557231240483
+peer:2,inrc ElectionTimes, case 1
+peer:2,in startLeaderElection
+peer:2,push rpctimes
+peer:2,in persist
+peer:2,persist over
+peer:2,toserver:4, in GoLeaderElection
+peer:2,recv voterequest from 4, his term:2, my term:2
+peer:2,case 3
+peer:2,toserver:1, in GoLeaderElection
+peer:2,toserver:0, in GoLeaderElection
+peer:2,toserver:3, in GoLeaderElection
+peer:2,toserver:0, sendRequestVote success
+peer:2,toserver:1, sendRequestVote success
+peer:2,reply:false,2
+peer:2,debug, 0, 0
+peer:2,toserver:4, sendRequestVote success
+peer:2,reply:false,3
+peer:2,recv vote reply, meet big term, trans to follower, start loop, 3, 3
+peer:2,in persist
+peer:2,persist over
+peer:2,debug, 0, 0
+peer:2,loop:3, now:1557231240486, lastrecv:1557231240484,diff:2,interval:120
+peer:2,recv voterequest from 0, his term:3, my term:3
+peer:2,case 3
+peer:2,reply:false,3
+peer:2,recv voterequest from 3, his term:3, my term:3
+peer:2,case 3
+peer:2,debug, 0, 0
+peer:2,toserver:3, sendRequestVote success
+peer:2,reply:false,3
+peer:2,debug, 0, 0
+peer:2,loop:4, now:1557231240537, lastrecv:1557231240484,diff:53,interval:120
+peer:2,recv voterequest from 0, his term:4, my term:3
+peer:2,case 1, start loop
+peer:2,in persist
+peer:2,persist over
+peer:2,recv append from 0,AppendLoopRound:0
+peer:2,refresh lastrecvtime
+peer:2, recv log:
+peer:2,in persist
+peer:2,persist over
+peer:2,all log:
+peer:2,recv append from 0,AppendLoopRound:1
+peer:2,refresh lastrecvtime
+peer:2, recv log:
+peer:2,in persist
+peer:2,persist over
+peer:2,all log:
+peer:2,recv append from 0,AppendLoopRound:2
+peer:2,refresh lastrecvtime
+peer:2, recv log:
+peer:2,in persist
+peer:2,persist over
+peer:2,all log:
+peer:2,recv append from 0,AppendLoopRound:3
+peer:2,refresh lastrecvtime
+peer:2, my nextindex is 0
+peer:2,loop:5, now:1557231240588, lastrecv:1557231240586,diff:2,interval:120
+peer:2,recv append from 0,AppendLoopRound:4
+peer:2,refresh lastrecvtime
+peer:2, recv log:
+peer:2,in persist
+peer:2,persist over
+peer:2,all log:{0 4 0}:
+peer:2, refresh commitindex from -1 to 0
+peer:2, reply to tester
+peer:2,recv append from 0,AppendLoopRound:5
+peer:2,refresh lastrecvtime
+peer:2, recv log:
+peer:2,in persist
+peer:2,persist over
+peer:2,all log:{0 4 0}:
+peer:2,recv append from 0,AppendLoopRound:6
+peer:2,refresh lastrecvtime
+peer:2, recv log:
+peer:2,in persist
+peer:2,persist over
+peer:2,all log:{0 4 0}:
+peer:2,recv append from 0,AppendLoopRound:7
+peer:2,refresh lastrecvtime
+peer:2, recv log:
+peer:2,in persist
+peer:2,persist over
+peer:2,all log:{0 4 0}:
+peer:2,recv append from 0,AppendLoopRound:8
+peer:2,refresh lastrecvtime
+peer:2, recv log:
+peer:2,in persist
+peer:2,persist over
+peer:2,all log:{0 4 0}:
+peer:2,recv append from 0,AppendLoopRound:9
+peer:2,refresh lastrecvtime
+peer:2, recv log:
+peer:2,in persist
+peer:2,persist over
+peer:2,all log:{0 4 0}:
+peer:2,recv append from 0,AppendLoopRound:10
+peer:2,refresh lastrecvtime
+peer:2, recv log:
+peer:2,in persist
+peer:2,persist over
+peer:2,all log:{0 4 0}:
+peer:2,loop:6, now:1557231240639, lastrecv:1557231240636,diff:3,interval:120
+peer:2,recv append from 0,AppendLoopRound:11
+peer:2,refresh lastrecvtime
+peer:2, recv log:
+peer:2,in persist
+peer:2,persist over
+peer:2,all log:{0 4 0}:
+peer:2,recv append from 0,AppendLoopRound:12
+peer:2,refresh lastrecvtime
+peer:2, recv log:
+peer:2,in persist
+peer:2,persist over
+peer:2,all log:{0 4 0}:
+peer:2,recv append from 0,AppendLoopRound:13
+peer:2,refresh lastrecvtime
+peer:2, recv log:
+peer:2,in persist
+peer:2,persist over
+peer:2,all log:{0 4 0}:
+peer:2,recv append from 0,AppendLoopRound:14
+peer:2,refresh lastrecvtime
+peer:2, recv log:
+peer:2,in persist
+peer:2,persist over
+peer:2,all log:{0 4 0}:
+peer:2,recv append from 0,AppendLoopRound:15
+peer:2,refresh lastrecvtime
+peer:2, recv log:
+peer:2,in persist
+peer:2,persist over
+peer:2,all log:{0 4 0}:
+peer:2,recv append from 0,AppendLoopRound:16
+peer:2,refresh lastrecvtime
+peer:2, recv log:
+peer:2,in persist
+peer:2,persist over
+peer:2,all log:{0 4 0}:
+peer:2,recv append from 0,AppendLoopRound:17
+peer:2,refresh lastrecvtime
+peer:2, recv log:
+peer:2,in persist
+peer:2,persist over
+peer:2,all log:{0 4 0}:
+peer:2,loop:7, now:1557231240689, lastrecv:1557231240686,diff:3,interval:120
+peer:2,recv append from 0,AppendLoopRound:18
+peer:2,refresh lastrecvtime
+peer:2, recv log:
+peer:2,in persist
+peer:2,persist over
+peer:2,all log:{0 4 0}:
+peer:2,recv append from 0,AppendLoopRound:19
+peer:2,refresh lastrecvtime
+peer:2, recv log:
+peer:2,in persist
+peer:2,persist over
+peer:2,all log:{0 4 0}:
+peer:2,recv append from 0,AppendLoopRound:20
+peer:2,refresh lastrecvtime
+peer:2, recv log:
+peer:2,in persist
+peer:2,persist over
+peer:2,all log:{0 4 0}:
+peer:2,recv append from 0,AppendLoopRound:21
+peer:2,refresh lastrecvtime
+peer:2, recv log:
+peer:2,in persist
+peer:2,persist over
+peer:2,all log:{0 4 0}:
+peer:2,recv append from 0,AppendLoopRound:22
+peer:2,refresh lastrecvtime
+peer:2, recv log:
+peer:2,in persist
+peer:2,persist over
+peer:2,all log:{0 4 0}peer:4,recv append from 0,AppendLoopRound:58
+peer:2,recv append from 0,AppendLoopRound:23
+peer:2,refresh lastrecvtime
+peer:2, recv log:
+peer:2,in persist
+peer:2,persist over
+peer:2,all log:{0 4 0}:
+peer:2,recv append from 0,AppendLoopRound:24
+peer:4,all log:peer:2,refresh lastrecvtime
+peer:2, recv log:
+peer:2,in persist
+peer:2,persist over
+peer:2,all log:{0 4 0}:
+peer:2,recv append from 0,AppendLoopRound:25
+peer:2,refresh lastrecvtime
+peer:2, recv log:
+peer:2,in persist
+peer:2,persist over
+peer:2,all log:{0 4 0}:
+peer:2,loop:8, now:1557231240740, lastrecv:1557231240737,diff:3,interval:120
+peer:2,recv append from 0,AppendLoopRound:26
+peer:2,refresh lastrecvtime
+peer:2, recv log:
+peer:2,in persist
+peer:2,persist over
+peer:2,all log:{0 4 0}:
+peer:2,recv append from 0,AppendLoopRound:27
+peer:2,refresh lastrecvtime
+peer:2, recv log:
+peer:2,in persist
+peer:2,persist over
+peer:2,all log:{0 4 0}:
+peer:2,recv append from 0,AppendLoopRound:28
+peer:2,refresh lastrecvtime
+peer:2, recv log:
+peer:2,in persist
+peer:2,persist over
+peer:2,all log:{0 4 0}:
+peer:2,recv append from 0,AppendLoopRound:29
+peer:2,refresh lastrecvtime
+peer:2, recv log:
+peer:2,in persist
+peer:2,persist over
+peer:2,all log:{0 4 0}:
+peer:2,recv append from 0,AppendLoopRound:30
+peer:2,refresh lastrecvtime
+peer:2, recv log:
+peer:2,in persist
+peer:2,persist over
+peer:2,all log:{0 4 0}:
+peer:2,recv append from 0,AppendLoopRound:31
+peer:2,refresh lastrecvtime
+peer:2, recv log:
+peer:2,in persist
+peer:2,persist over
+peer:2,all log:peer:3,recv append from 0,AppendLoopRound:31
+peer:2,recv append from 0,AppendLoopRound:32
+peer:2,refresh lastrecvtime
+peer:2, recv log:
+peer:2,in persist
+peer:2,persist over
+peer:2,all log:{0 4 0}:
+peer:2,recv append from 0,AppendLoopRound:33
+peer:2,refresh lastrecvtime
+peer:2, recv log:
+peer:2,in persist
+peer:2,persist over
+peer:2,all log:{0 4 0}:
+peer:2,recv append from 0,AppendLoopRound:34
+peer:2,refresh lastrecvtime
+peer:2, recv log:
+peer:2,in persist
+peer:2,persist over
+peer:2,all log:{0 4 0}:
+peer:2,loop:9, now:1557231240791, lastrecv:1557231240787,diff:4,interval:120
+peer:2,recv append from 0,AppendLoopRound:35
+peer:2,refresh lastrecvtime
+peer:2, recv log:
+peer:2,in persist
+peer:2,persist over
+peer:2,all log:{0 4 0}:
+peer:2,recv append from 0,AppendLoopRound:36
+peer:2,refresh lastrecvtime
+peer:2, recv log:
+peer:2,in persist
+peer:2,persist over
+peer:2,all log:{0 4 0}:
+peer:2,recv append from 0,AppendLoopRound:37
+peer:2,refresh lastrecvtime
+peer:2, recv log:
+peer:2,in persist
+peer:2,persist over
+peer:2,all log:{0 4 0}:
+peer:2,recv append from 0,AppendLoopRound:38
+peer:2,refresh lastrecvtime
+peer:2, recv log:
+peer:2,in persist
+peer:2,persist over
+peer:2,all log:{0 4 0}:
+peer:2,recv append from 0,AppendLoopRound:39
+peer:2,refresh lastrecvtime
+peer:2, recv log:
+peer:2,in persist
+peer:2,persist over
+peer:2,all log:{0 4 0}:
+peer:2,recv append from 0,AppendLoopRound:40
+peer:2,refresh lastrecvtime
+peer:2, recv log:
+peer:2,in persist
+peer:2,persist over
+peer:2,all log:{0 4 0}:
+peer:2,recv append from 0,AppendLoopRound:41
+peer:2,refresh lastrecvtime
+peer:2, recv log:
+peer:2,in persist
+peer:2,persist over
+peer:2,all log:{0 4 0}:
+peer:2,loop:10, now:1557231240844, lastrecv:1557231240840,diff:4,interval:120
+peer:2,recv append from 0,AppendLoopRound:42
+peer:2,refresh lastrecvtime
+peer:2, recv log:
+peer:2,in persist
+peer:2,persist over
+peer:2,all log:{0 4 0}:
+peer:2,recv append from 0,AppendLoopRound:43
+peer:2,refresh lastrecvtime
+peer:2, recv log:
+peer:2,in persist
+peer:2,persist over
+peer:2,all log:{0 4 0}:
+peer:2,recv append from 0,AppendLoopRound:44
+peer:2,refresh lastrecvtime
+peer:2, recv log:
+peer:2,in persist
+peer:2,persist over
+peer:2,all log:{0 4 0}:
+peer:2,recv append from 0,AppendLoopRound:45
+peer:2,refresh lastrecvtime
+peer:2, recv log:
+peer:2,in persist
+peer:2,persist over
+peer:2,all log:{0 4 0}:
+peer:2,recv append from 0,AppendLoopRound:46
+peer:2,refresh lastrecvtime
+peer:2, recv log:
+peer:2,in persist
+peer:2,persist over
+peer:2,all log:{0 4 0}:
+peer:2,recv append from 0,AppendLoopRound:47
+peer:2,refresh lastrecvtime
+peer:2, recv log:
+peer:2,in persist
+peer:2,persist over
+peer:2,all log:{0 4 0}:
+peer:2,recv append from 0,AppendLoopRound:48
+peer:2,refresh lastrecvtime
+peer:2, recv log:
+peer:2,in persist
+peer:2,persist over
+peer:2,all log:{0 4 0}:
+peer:2,recv append from 0,AppendLoopRound:49
+peer:2,refresh lastrecvtime
+peer:2, recv log:
+peer:2,in persist
+peer:2,persist over
+peer:2,all log:{0 4 0}:
+peer:2,loop:11, now:1557231240894, lastrecv:1557231240892,diff:2,interval:120
+peer:2,recv append from 0,AppendLoopRound:50
+peer:2,refresh lastrecvtime
+peer:2, recv log:
+peer:2,in persist
+peer:2,persist over
+peer:2,all log:{0 4 0}:
+peer:2,recv append from 0,AppendLoopRound:51
+peer:2,refresh lastrecvtime
+peer:2, recv log:
+peer:2,in persist
+peer:2,persist over
+peer:2,all log:{0 4 0}:
+peer:2,recv append from 0,AppendLoopRound:52
+peer:2,refresh lastrecvtime
+peer:2, recv log:
+peer:2,in persist
+peer:2,persist over
+peer:2,all log:{0 4 0}:
+peer:2,recv append from 0,AppendLoopRound:53
+peer:2,refresh lastrecvtime
+peer:2, recv log:
+peer:2,in persist
+peer:2,persist over
+peer:2,all log:{0 4 0}:
+peer:2,recv append from 0,AppendLoopRound:54
+peer:2,refresh lastrecvtime
+peer:2, recv log:
+peer:2,in persist
+peer:2,persist over
+peer:2,all log:{0 4 0}:
+peer:2,recv append from 0,AppendLoopRound:55
+peer:2,refresh lastrecvtime
+peer:2, recv log:
+peer:2,in persist
+peer:2,persist over
+peer:2,all log:{0 4 0}:
+peer:2,recv append from 0,AppendLoopRound:56
+peer:2,refresh lastrecvtime
+peer:2, recv log:
+peer:2,in persist
+peer:2,persist over
+peer:2,all log:{0 4 0}:
+peer:2,recv append from 0,AppendLoopRound:57
+peer:2,refresh lastrecvtime
+peer:2, recv log:
+peer:2,in persist
+peer:2,persist over
+peer:2,all log:{0 4 0}:
+peer:2,loop:12, now:1557231240945, lastrecv:1557231240941,diff:4,interval:120
+peer:2,recv append from 0,AppendLoopRound:58
+peer:2,refresh lastrecvtime
+peer:2, recv log:
+peer:2,in persist
+peer:2,persist over
+peer:2,all log:{0 4 0}:
+peer:2,recv append from 0,AppendLoopRound:59
+peer:2,refresh lastrecvtime
+peer:2, recv log:
+peer:2,in persist
+peer:2,persist over
+peer:2,all log:{0 4 0}:
+peer:2,recv append from 0,AppendLoopRound:60
+peer:2,refresh lastrecvtime
+peer:2, recv log:
+peer:2,in persist
+peer:2,persist over
+peer:2,all log:{0 4 0}:
+peer:2,recv append from 0,AppendLoopRound:61
+peer:2,refresh lastrecvtime
+peer:2, recv log:
+peer:2,in persist
+peer:2,persist over
+peer:2,all log:{0 4 0}:
+peer:2,recv append from 0,AppendLoopRound:62
+peer:2,refresh lastrecvtime
+peer:2, recv log:
+peer:2,in persist
+peer:2,persist over
+peer:2,all log:{0 4 0}:
+peer:2,recv append from 0,AppendLoopRound:63
+peer:2,refresh lastrecvtime
+peer:2, recv log:
+peer:2,in persist
+peer:2,persist over
+peer:2,all log:{0 4 0}:
+peer:1,all log:{0 4 0}:peer:2,recv append from 0,AppendLoopRound:64
+peer:2,refresh lastrecvtime
+peer:2, recv log:
+peer:2,in persist
+peer:2,persist over
+peer:2,all log:{0 4 0}:
+peer:2,recv append from 0,AppendLoopRound:65
+peer:2,refresh lastrecvtime
+peer:2, recv log:
+peer:2,in persist
+peer:2,persist over
+peer:2,all log:{0 4 0}:
+peer:2,loop:13, now:1557231240996, lastrecv:1557231240994,diff:2,interval:120
+peer:2,recv append from 0,AppendLoopRound:66
+peer:2,refresh lastrecvtime
+peer:2, recv log:
+peer:2,in persist
+peer:2,persist over
+peer:2,all log:{0 4 0}:
+peer:2,recv append from 0,AppendLoopRound:67
+peer:2,refresh lastrecvtime
+peer:2, recv log:
+peer:2,in persist
+peer:2,persist over
+peer:2,all log:{0 4 0}:
+peer:2,recv append from 0,AppendLoopRound:68
+peer:2,refresh lastrecvtime
+peer:2, recv log:
+peer:2,in persist
+peer:2,persist over
+peer:2,all log:{0 4 0}:
+peer:2,recv append from 0,AppendLoopRound:69
+peer:2,refresh lastrecvtime
+peer:2, recv log:
+peer:2,in persist
+peer:2,persist over
+peer:2,all log:{0 4 0}:
+peer:2,recv append from 0,AppendLoopRound:70
+peer:2,refresh lastrecvtime
+peer:2, recv log:
+peer:2,in persist
+peer:2,persist over
+peer:2,all log:{0 4 0}:
+peer:2,recv append from 0,AppendLoopRound:71
+peer:2,refresh lastrecvtime
+peer:2, recv log:
+peer:2,in persist
+peer:2,persist over
+peer:2,all log:{0 4 0}:
+peer:2,recv append from 0,AppendLoopRound:72
+peer:2,refresh lastrecvtime
+peer:2, recv log:
+peer:2,in persist
+peer:2,persist over
+peer:2,all log:{0 4 0}:
+peer:2,recv append from 0,AppendLoopRound:73
+peer:2,refresh lastrecvtime
+peer:2, recv log:
+peer:2,in persist
+peer:2,persist over
+peer:2,all log:{0 4 0}:
+peer:2,loop:14, now:1557231241048, lastrecv:1557231241045,diff:3,interval:120
+peer:2,recv append from 0,AppendLoopRound:74
+peer:2,refresh lastrecvtime
+peer:2, recv log:
+peer:2,in persist
+peer:2,persist over
+peer:2,all log:{0 4 0}:
+peer:2,recv append from 0,AppendLoopRound:75
+peer:2,refresh lastrecvtime
+peer:2, recv log:
+peer:2,in persist
+peer:2,persist over
+peer:2,all log:{0 4 0}:
+peer:2,recv append from 0,AppendLoopRound:76
+peer:2,refresh lastrecvtime
+peer:2, recv log:
+peer:2,in persist
+peer:2,persist over
+peer:2,all log:{0 4 0}:
+peer:2,recv append from 0,AppendLoopRound:77
+peer:2,refresh lastrecvtime
+peer:2, recv log:
+peer:2,in persist
+peer:2,persist over
+peer:2,all log:{0 4 0}:
+peer:2,recv append from 0,AppendLoopRound:78
+peer:2,refresh lastrecvtime
+peer:2, recv log:
+peer:2,in persist
+peer:2,persist over
+peer:2,all log:{0 4 0}:
+peer:2,recv append from 0,AppendLoopRound:79
+peer:2,refresh lastrecvtime
+peer:2, recv log:
+peer:2,in persist
+peer:2,persist over
+peer:2,all log:{0 4 0}:
+peer:2,recv append from 0,AppendLoopRound:80
+peer:2,refresh lastrecvtime
+peer:2, recv log:
+peer:2,in persist
+peer:2,persist over
+peer:2,all log:{0 4 0}:
+peer:2,loop:15, now:1557231241099, lastrecv:1557231241092,diff:7,interval:120
+peer:2,recv append from 0,AppendLoopRound:81
+peer:2,refresh lastrecvtime
+peer:2, recv log:
+peer:2,in persist
+peer:2,persist over
+peer:2,all log:{0 4 0}:peer:0, start send entry, from 1
+peer:2,recv append from 0,AppendLoopRound:82
+peer:2,refresh lastrecvtime
+peer:2, recv log:
+peer:2,in persist
+peer:2,persist over
+peer:2,all log:{0 4 0}:
+peer:2,recv append from 0,AppendLoopRound:83
+peer:2,refresh lastrecvtime
+peer:2, recv log:
+peer:2,in persist
+peer:2,persist over
+peer:2,all log:{0 4 0}:
+peer:2,recv append from 0,AppendLoopRound:84
+peer:2,refresh lastrecvtime
+peer:2, recv log:
+peer:2,in persist
+peer:2,persist over
+peer:2,all log:peer:0,send append success, append loop:185, send append to 1
+peer:2,recv append from 0,AppendLoopRound:85
+peer:2,refresh lastrecvtime
+peer:2, recv log:
+peer:2,in persist
+peer:2,persist over
+peer:2,all log:{0 4 0}:
+peer:2,loop:16, now:1557231241150, lastrecv:1557231241127,diff:23,interval:120
+peer:2,loop:17, now:1557231241201, lastrecv:1557231241127,diff:74,interval:120
+peer:2,loop:18, now:1557231241251, lastrecv:1557231241127,diff:124,interval:120
+peer:2,startLeaderElection
+peer:2,lastrecv:1557231241127
+peer:2,now:1557231241251
+peer:2,inrc ElectionTimes, case 1
+peer:2,in startLeaderElection
+peer:2,push rpctimes
+peer:2,in persist
+peer:2,persist over
+peer:2,toserver:4, in GoLeaderElection
+peer:2,toserver:0, in GoLeaderElection
+peer:2,toserver:1, in GoLeaderElection
+peer:2,toserver:3, in GoLeaderElection
+peer:2,toserver:1,sendRequestVote fail
+peer:2,debug, 1, 1
+peer:2,toserver:3,sendRequestVote fail
+peer:2,debug, 1, 1
+peer:2,toserver:4,sendRequestVote fail
+peer:2,debug, 1, 1
+peer:2,toserver:0,sendRequestVote fail
+peer:2,debug, 1, 1
+peer:2,recv over,need election again,need sleep 99ms
 peer:2,wake up
+peer:2,inrc ElectionTimes, case 2
 peer:2,in startLeaderElection
-peer:2,toserver:1, in GoLeaderElection
+peer:2,push rpctimes
+peer:2,in persist
+peer:2,persist over
+peer:2,toserver:4, in GoLeaderElection
 peer:2,toserver:0, in GoLeaderElection
-peer:2,toserver:1, sendRequestVote success
-peer:2,reply:true,2
-peer:2,become leader
-peer:2,start leader loop
-peer:2,append loop:0
-peer:2,in GoLeaderAppend, append loop:0, send append to 1
-peer:2,toserver:0, sendRequestVote success
-peer:2,reply:true,2
-peer:2,append loop:0
-peer:2,in GoLeaderAppend, append loop:0, send append to 0
-peer:2,send append success, append loop:0, send append to 1
-peer:2,send append success, append loop:0, send append to 0
-peer:2,append loop:1
-peer:2,in GoLeaderAppend, append loop:1, send append to 1
-peer:2,send append success, append loop:1, send append to 1
-peer:2,append loop:1
-peer:2,in GoLeaderAppend, append loop:1, send append to 0
-peer:2,send append success, append loop:1, send append to 0
-peer:2,append loop:2
-peer:2,in GoLeaderAppend, append loop:2, send append to 1
-peer:2,append loop:2
-peer:2,in GoLeaderAppend, append loop:2, send append to 0
-peer:2,send append success, append loop:2, send append to 1
-peer:2,send append success, append loop:2, send append to 0
-peer:2,append loop:3
-peer:2,in GoLeaderAppend, append loop:3, send append to 1
-peer:2,append loop:3
-peer:2,in GoLeaderAppend, append loop:3, send append to 0
-peer:2,send append success, append loop:3, send append to 1
-peer:2,send append success, append loop:3, send append to 0
-peer:2,append loop:4
-peer:2,in GoLeaderAppend, append loop:4, send append to 0
-peer:2,send append success, append loop:4, send append to 0
-peer:2,append loop:4
-peer:2,in GoLeaderAppend, append loop:4, send append to 1
-peer:2,send append success, append loop:4, send append to 1
-peer:2,append loop:5
-peer:2,in GoLeaderAppend, append loop:5, send append to 0
-peer:2,append loop:5
-peer:2,in GoLeaderAppend, append loop:5, send append to 1
-peer:2,send append success, append loop:5, send append to 0
-peer:2,send append success, append loop:5, send append to 1
-peer:2,append loop:6
-peer:2,in GoLeaderAppend, append loop:6, send append to 0
-peer:2,append loop:6
-peer:2,in GoLeaderAppend, append loop:6, send append to 1
-peer:2,send append success, append loop:6, send append to 0
-peer:2,send append success, append loop:6, send append to 1
-peer:2,append loop:7
-peer:2,in GoLeaderAppend, append loop:7, send append to 0
-peer:2,append loop:7
-peer:2,in GoLeaderAppend, append loop:7, send append to 1
-peer:2,send append success, append loop:7, send append to 0
-peer:2,send append success, append loop:7, send append to 1
-peer:2,append loop:8
-peer:2,in GoLeaderAppend, append loop:8, send append to 0
-peer:2,append loop:8
-peer:2,in GoLeaderAppend, append loop:8, send append to 1
-peer:2,send append success, append loop:8, send append to 1
-peer:2,send append success, append loop:8, send append to 0
-peer:2,append loop:9
-peer:2,in GoLeaderAppend, append loop:9, send append to 1
-peer:2,append loop:9
-peer:2,in GoLeaderAppend, append loop:9, send append to 0
-peer:2,send append success, append loop:9, send append to 1
-peer:2,send append success, append loop:9, send append to 0
-peer:2,append loop:10
-peer:2,in GoLeaderAppend, append loop:10, send append to 0
-peer:2,send append success, append loop:10, send append to 0
-peer:2,append loop:10
-peer:2,in GoLeaderAppend, append loop:10, send append to 1
-peer:2,send append success, append loop:10, send append to 1
-peer:2,append loop:11
-peer:2,in GoLeaderAppend, append loop:11, send append to 0
-peer:2,send append success, append loop:11, send append to 0
-peer:2,append loop:11
-peer:2,in GoLeaderAppend, append loop:11, send append to 1
-peer:2,send append success, append loop:11, send append to 1
-peer:2,append loop:12
-peer:2,in GoLeaderAppend, append loop:12, send append to 1
-peer:2,append loop:12
-peer:2,in GoLeaderAppend, append loop:12, send append to 0
-peer:2,send append success, append loop:12, send append to 1
-peer:2,send append success, append loop:12, send append to 0
-peer:2,append loop:13
-peer:2,in GoLeaderAppend, append loop:13, send append to 1
-peer:2,append loop:13
-peer:2,in GoLeaderAppend, append loop:13, send append to 0
-peer:2,send append success, append loop:13, send append to 1
-peer:2,send append success, append loop:13, send append to 0
-peer:2,append loop:14
-peer:2,in GoLeaderAppend, append loop:14, send append to 0
-peer:2,append loop:14
-peer:2,in GoLeaderAppend, append loop:14, send append to 1
-peer:2,send append success, append loop:14, send append to 0
-peer:2,send append success, append loop:14, send append to 1
-peer:2,append loop:15
-peer:2,in GoLeaderAppend, append loop:15, send append to 0
-peer:2,append loop:15
-peer:2,in GoLeaderAppend, append loop:15, send append to 1
-peer:2,send append success, append loop:15, send append to 1
-peer:2,send append success, append loop:15, send append to 0
-peer:2,append loop:16
-peer:2,in GoLeaderAppend, append loop:16, send append to 1
-peer:2,append loop:16
-peer:2,in GoLeaderAppend, append loop:16, send append to 0
-peer:2,send append success, append loop:16, send append to 1
-peer:2,send append success, append loop:16, send append to 0
-peer:2,append loop:17
-peer:2,in GoLeaderAppend, append loop:17, send append to 0
-peer:2,send append success, append loop:17, send append to 0
-peer:2,append loop:17
-peer:2,in GoLeaderAppend, append loop:17, send append to 1
-peer:2,send append success, append loop:17, send append to 1
-peer:2,append loop:18
-peer:2,in GoLeaderAppend, append loop:18, send append to 1
-peer:2,send append success, append loop:18, send append to 1
-peer:2,append loop:18
-peer:2,in GoLeaderAppend, append loop:18, send append to 0
-peer:2,send append success, append loop:18, send append to 0
-peer:2,append loop:19
-peer:2,in GoLeaderAppend, append loop:19, send append to 0
-peer:2,send append success, append loop:19, send append to 0
-peer:2,append loop:19
-peer:2,in GoLeaderAppend, append loop:19, send append to 1
-peer:2,send append success, append loop:19, send append to 1
-peer:2,append loop:20
-peer:2,in GoLeaderAppend, append loop:20, send append to 1
-peer:2,send append success, append loop:20, send append to 1
-peer:2,append loop:20
-peer:2,in GoLeaderAppend, append loop:20, send append to 0
-peer:2,send append success, append loop:20, send append to 0
-peer:2,append loop:21
-peer:2,in GoLeaderAppend, append loop:21, send append to 1
-peer:2,append loop:21
-peer:2,in GoLeaderAppend, append loop:21, send append to 0
-peer:2,send append success, append loop:21, send append to 0
-peer:2,send append success, append loop:21, send append to 1
-peer:2,append loop:22
-peer:2,in GoLeaderAppend, append loop:22, send append to 0
-peer:2,append loop:22
-peer:2,in GoLeaderAppend, append loop:22, send append to 1
-peer:2,send append success, append loop:22, send append to 0
-peer:2,send append success, append loop:22, send append to 1
-peer:2,append loop:23
-peer:2,in GoLeaderAppend, append loop:23, send append to 0
-peer:2,send append success, append loop:23, send append to 0
-peer:2,append loop:23
-peer:2,in GoLeaderAppend, append loop:23, send append to 1
-peer:2,send append success, append loop:23, send append to 1
-peer:2,append loop:24
-peer:2,in GoLeaderAppend, append loop:24, send append to 1
-peer:2,append loop:24
-peer:2,in GoLeaderAppend, append loop:24, send append to 0
-peer:2,send append success, append loop:24, send append to 1
-peer:2,send append success, append loop:24, send append to 0
-peer:2,append loop:25
-peer:2,in GoLeaderAppend, append loop:25, send append to 0
-peer:2,send append success, append loop:25, send append to 0
-peer:2,append loop:25
-peer:2,in GoLeaderAppend, append loop:25, send append to 1
-peer:2,send append success, append loop:25, send append to 1
-peer:2,append loop:26
-peer:2,in GoLeaderAppend, append loop:26, send append to 1
-peer:2,append loop:26
-peer:2,in GoLeaderAppend, append loop:26, send append to 0
-peer:2,send append success, append loop:26, send append to 0
-peer:2,send append success, append loop:26, send append to 1
-peer:2,append loop:27
-peer:2,in GoLeaderAppend, append loop:27, send append to 1
-peer:2,send append success, append loop:27, send append to 1
-peer:2,append loop:27
-peer:2,in GoLeaderAppend, append loop:27, send append to 0
-peer:2,send append success, append loop:27, send append to 0
-peer:2,append loop:28
-peer:2,in GoLeaderAppend, append loop:28, send append to 0
-peer:2,append loop:28
-peer:2,in GoLeaderAppend, append loop:28, send append to 1
-peer:2,send append success, append loop:28, send append to 0
-peer:2,send append success, append loop:28, send append to 1
-peer:2,append loop:29
-peer:2,in GoLeaderAppend, append loop:29, send append to 0
-peer:2,append loop:29
-peer:2,in GoLeaderAppend, append loop:29, send append to 1
-peer:2,send append success, append loop:29, send append to 0
-peer:2,send append success, append loop:29, send append to 1
-peer:2,append loop:30
-peer:2,in GoLeaderAppend, append loop:30, send append to 1
-peer:2,append loop:30
-peer:2,in GoLeaderAppend, append loop:30, send append to 0
-peer:2,send append success, append loop:30, send append to 1
-peer:2,send append success, append loop:30, send append to 0
-peer:2,append loop:31
-peer:2,in GoLeaderAppend, append loop:31, send append to 1
-peer:2,append loop:31
-peer:2,in GoLeaderAppend, append loop:31, send append to 0
-peer:2,send append success, append loop:31, send append to 1
-peer:2,send append success, append loop:31, send append to 0
-peer:2,append loop:32
-peer:2,in GoLeaderAppend, append loop:32, send append to 0
-peer:2,append loop:32
-peer:2,in GoLeaderAppend, append loop:32, send append to 1
-peer:2,send append success, append loop:32, send append to 0
-peer:2,send append success, append loop:32, send append to 1
-peer:2,append loop:33
-peer:2,in GoLeaderAppend, append loop:33, send append to 1
-peer:2,send append success, append loop:33, send append to 1
-peer:2,append loop:33
-peer:2,in GoLeaderAppend, append loop:33, send append to 0
-peer:2,send append success, append loop:33, send append to 0
-peer:2,append loop:34
-peer:2,in GoLeaderAppend, append loop:34, send append to 0
-peer:2,append loop:34
-peer:2,in GoLeaderAppend, append loop:34, send append to 1
-peer:2,send append success, append loop:34, send append to 0
-peer:2,send append success, append loop:34, send append to 1
-peer:2,append loop:35
-peer:2,in GoLeaderAppend, append loop:35, send append to 0
-peer:2,append loop:35
-peer:2,in GoLeaderAppend, append loop:35, send append to 1
-peer:2,send append success, append loop:35, send append to 0
-peer:2,send append success, append loop:35, send append to 1
-peer:2,append loop:36
-peer:2,in GoLeaderAppend, append loop:36, send append to 0
-peer:2,append loop:36
-peer:2,in GoLeaderAppend, append loop:36, send append to 1
-peer:2,send append success, append loop:36, send append to 0
-peer:2,send append success, append loop:36, send append to 1
-peer:2,append loop:37
-peer:2,in GoLeaderAppend, append loop:37, send append to 1
-peer:2,append loop:37
-peer:2,in GoLeaderAppend, append loop:37, send append to 0
-peer:2,send append success, append loop:37, send append to 1
-peer:2,send append success, append loop:37, send append to 0
-peer:2,append loop:38
-peer:2,in GoLeaderAppend, append loop:38, send append to 1
-peer:2,append loop:38
-peer:2,in GoLeaderAppend, append loop:38, send append to 0
-peer:2,send append success, append loop:38, send append to 1
-peer:2,send append success, append loop:38, send append to 0
-peer:2,append loop:39
-peer:2,in GoLeaderAppend, append loop:39, send append to 1
-peer:2,append loop:39
-peer:2,in GoLeaderAppend, append loop:39, send append to 0
-peer:2,send append success, append loop:39, send append to 1
-peer:2,send append success, append loop:39, send append to 0
-peer:2,append loop:40
-peer:2,in GoLeaderAppend, append loop:40, send append to 0
-peer:2,append loop:40
-peer:2,in GoLeaderAppend, append loop:40, send append to 1
-peer:2,send append success, append loop:40, send append to 0
-peer:2,send append success, append loop:40, send append to 1
-peer:2,append loop:41
-peer:2,in GoLeaderAppend, append loop:41, send append to 0
-peer:2,append loop:41
-peer:2,in GoLeaderAppend, append loop:41, send append to 1
-peer:2,send append success, append loop:41, send append to 0
-peer:2,send append success, append loop:41, send append to 1
-peer:2,append loop:42
-peer:2,in GoLeaderAppend, append loop:42, send append to 0
-peer:2,append loop:42
-peer:2,in GoLeaderAppend, append loop:42, send append to 1
-peer:2,send append success, append loop:42, send append to 0
-peer:2,send append success, append loop:42, send append to 1
-peer:2,append loop:43
-peer:2,in GoLeaderAppend, append loop:43, send append to 0
-peer:2,append loop:43
-peer:2,in GoLeaderAppend, append loop:43, send append to 1
-peer:2,send append success, append loop:43, send append to 1
-peer:2,send append success, append loop:43, send append to 0
-peer:2,append loop:44
-peer:2,in GoLeaderAppend, append loop:44, send append to 0
-peer:2,append loop:44
-peer:2,in GoLeaderAppend, append loop:44, send append to 1
-peer:2,send append success, append loop:44, send append to 1
-peer:2,send append success, append loop:44, send append to 0
-peer:2,append loop:45
-peer:2,in GoLeaderAppend, append loop:45, send append to 0
-peer:2,append loop:45
-peer:2,in GoLeaderAppend, append loop:45, send append to 1
-peer:2,send append success, append loop:45, send append to 1
-peer:2,send append success, append loop:45, send append to 0
-peer:2,append loop:46
-peer:2,in GoLeaderAppend, append loop:46, send append to 0
-peer:2,append loop:46
-peer:2,in GoLeaderAppend, append loop:46, send append to 1
-peer:2,send append success, append loop:46, send append to 0
-peer:2,send append success, append loop:46, send append to 1
-peer:2,append loop:47
-peer:2,in GoLeaderAppend, append loop:47, send append to 1
-peer:2,append loop:47
-peer:2,in GoLeaderAppend, append loop:47, send append to 0
-peer:2,send append success, append loop:47, send append to 1
-peer:2,send append success, append loop:47, send append to 0
-peer:2,append loop:48
-peer:2,in GoLeaderAppend, append loop:48, send append to 1
-peer:2,append loop:48
-peer:2,in GoLeaderAppend, append loop:48, send append to 0
-peer:2,send append success, append loop:48, send append to 1
-peer:2,send append success, append loop:48, send append to 0
-peer:2,append loop:49
-peer:2,in GoLeaderAppend, append loop:49, send append to 1
-peer:2,send append success, append loop:49, send append to 1
-peer:2,append loop:49
-peer:2,in GoLeaderAppend, append loop:49, send append to 0
-peer:2,send append success, append loop:49, send append to 0
-peer:2,append loop:50
-peer:2,in GoLeaderAppend, append loop:50, send append to 0
-peer:2,send append success, append loop:50, send append to 0
-peer:2,append loop:50
-peer:2,in GoLeaderAppend, append loop:50, send append to 1
-peer:2,send append success, append loop:50, send append to 1
-peer:2,append loop:51
-peer:2,in GoLeaderAppend, append loop:51, send append to 0
-peer:2,send append success, append loop:51, send append to 0
-peer:2,append loop:51
-peer:2,in GoLeaderAppend, append loop:51, send append to 1
-peer:2,send append success, append loop:51, send append to 1
-peer:2,append loop:52
-peer:2,in GoLeaderAppend, append loop:52, send append to 1
-peer:2,append loop:52
-peer:2,in GoLeaderAppend, append loop:52, send append to 0
-peer:2,send append success, append loop:52, send append to 1
-peer:2,send append success, append loop:52, send append to 0
-peer:2,append loop:53
-peer:2,in GoLeaderAppend, append loop:53, send append to 1
-peer:2,send append success, append loop:53, send append to 1
-peer:2,append loop:53
-peer:2,in GoLeaderAppend, append loop:53, send append to 0
-peer:2,send append success, append loop:53, send append to 0
-peer:2,append loop:54
-peer:2,in GoLeaderAppend, append loop:54, send append to 0
-peer:2,send append success, append loop:54, send append to 0
-peer:2,append loop:54
-peer:2,in GoLeaderAppend, append loop:54, send append to 1
-peer:2,send append success, append loop:54, send append to 1
-peer:2,append loop:55
-peer:2,in GoLeaderAppend, append loop:55, send append to 1
-peer:2,send append success, append loop:55, send append to 1
-peer:2,append loop:55
-peer:2,in GoLeaderAppend, append loop:55, send append to 0
-peer:2,send append success, append loop:55, send append to 0
-peer:2,append loop:56
-peer:2,in GoLeaderAppend, append loop:56, send append to 0
-peer:2,append loop:56
-peer:2,in GoLeaderAppend, append loop:56, send append to 1
-peer:2,send append success, append loop:56, send append to 1
-peer:2,send append success, append loop:56, send append to 0
-peer:2,append loop:57
-peer:2,in GoLeaderAppend, append loop:57, send append to 1
-peer:2,append loop:57
-peer:2,in GoLeaderAppend, append loop:57, send append to 0
-peer:2,send append success, append loop:57, send append to 1
-peer:2,send append success, append loop:57, send append to 0
-peer:2,append loop:58
-peer:2,in GoLeaderAppend, append loop:58, send append to 0
-peer:2,send append success, append loop:58, send append to 0
-peer:2,append loop:58
-peer:2,in GoLeaderAppend, append loop:58, send append to 1
-peer:2,send append success, append loop:58, send append to 1
-peer:2,append loop:59
-peer:2,in GoLeaderAppend, append loop:59, send append to 1
-peer:2,send append success, append loop:59, send append to 1
-peer:2,append loop:59
-peer:2,in GoLeaderAppend, append loop:59, send append to 0
-peer:2,send append success, append loop:59, send append to 0
-peer:2,append loop:60
-peer:2,in GoLeaderAppend, append loop:60, send append to 0
-peer:2,send append success, append loop:60, send append to 0
-peer:2,append loop:60
-peer:2,in GoLeaderAppend, append loop:60, send append to 1
-peer:2,send append success, append loop:60, send append to 1
-peer:2,append loop:61
-peer:2,in GoLeaderAppend, append loop:61, send append to 0
-peer:2,append loop:61
-peer:2,in GoLeaderAppend, append loop:61, send append to 1
-peer:2,send append success, append loop:61, send append to 0
-peer:2,send append success, append loop:61, send append to 1
-peer:2,append loop:62
-peer:2,in GoLeaderAppend, append loop:62, send append to 0
-peer:2,append loop:62
-peer:2,in GoLeaderAppend, append loop:62, send append to 1
-peer:2,send append success, append loop:62, send append to 0
-peer:2,send append success, append loop:62, send append to 1
-peer:2,append loop:63
-peer:2,in GoLeaderAppend, append loop:63, send append to 0
-peer:2,append loop:63
-peer:2,in GoLeaderAppend, append loop:63, send append to 1
-peer:2,send append success, append loop:63, send append to 0
-peer:2,send append success, append loop:63, send append to 1
-peer:2,append loop:64
-peer:2,in GoLeaderAppend, append loop:64, send append to 1
-peer:2,append loop:64
-peer:2,in GoLeaderAppend, append loop:64, send append to 0
-peer:2,send append success, append loop:64, send append to 0
-peer:2,send append success, append loop:64, send append to 1
-peer:2,append loop:65
-peer:2,in GoLeaderAppend, append loop:65, send append to 0
-peer:2,send append success, append loop:65, send append to 0
-peer:2,append loop:65
-peer:2,in GoLeaderAppend, append loop:65, send append to 1
-peer:2,send append success, append loop:65, send append to 1
-peer:2,append loop:66
-peer:2,in GoLeaderAppend, append loop:66, send append to 1
-peer:2,append loop:66
-peer:2,in GoLeaderAppend, append loop:66, send append to 0
-peer:2,send append success, append loop:66, send append to 0
-peer:2,send append success, append loop:66, send append to 1
-peer:2,append loop:67
-peer:2,in GoLeaderAppend, append loop:67, send append to 0
-peer:2,append loop:67
-peer:2,in GoLeaderAppend, append loop:67, send append to 1
-peer:2,send append success, append loop:67, send append to 0
-peer:2,send append success, append loop:67, send append to 1
-peer:2,append loop:68
-peer:2,in GoLeaderAppend, append loop:68, send append to 1
-peer:2,append loop:68
-peer:2,in GoLeaderAppend, append loop:68, send append to 0
-peer:2,send append success, append loop:68, send append to 1
-peer:2,send append success, append loop:68, send append to 0
-peer:2,append loop:69
-peer:2,in GoLeaderAppend, append loop:69, send append to 1
-peer:2,send append success, append loop:69, send append to 1
-peer:2,append loop:69
-peer:2,in GoLeaderAppend, append loop:69, send append to 0
-peer:2,send append success, append loop:69, send append to 0
-peer:2,append loop:70
-peer:2,in GoLeaderAppend, append loop:70, send append to 0
-peer:2,append loop:70
-peer:2,in GoLeaderAppend, append loop:70, send append to 1
-peer:2,send append success, append loop:70, send append to 1
-peer:2,send append success, append loop:70, send append to 0
-peer:2,append loop:71
-peer:2,in GoLeaderAppend, append loop:71, send append to 0
-peer:2,append loop:71
-peer:2,in GoLeaderAppend, append loop:71, send append to 1
-peer:2,send append success, append loop:71, send append to 0
-peer:2,send append success, append loop:71, send append to 1
-peer:2,append loop:72
-peer:2,in GoLeaderAppend, append loop:72, send append to 0
-peer:2,append loop:72
-peer:2,in GoLeaderAppend, append loop:72, send append to 1
-peer:2,send append success, append loop:72, send append to 1
-peer:2,send append success, append loop:72, send append to 0
-peer:2,append loop:73
-peer:2,in GoLeaderAppend, append loop:73, send append to 1
-peer:2,send append success, append loop:73, send append to 1
-peer:2,append loop:73
-peer:2,in GoLeaderAppend, append loop:73, send append to 0
-peer:2,send append success, append loop:73, send append to 0
-peer:2,append loop:74
-peer:2,in GoLeaderAppend, append loop:74, send append to 0
-peer:2,send append success, append loop:74, send append to 0
-peer:2,append loop:74
-peer:2,in GoLeaderAppend, append loop:74, send append to 1
-peer:2,send append success, append loop:74, send append to 1
-peer:2,append loop:75
-peer:2,in GoLeaderAppend, append loop:75, send append to 1
-peer:2,append loop:75
-peer:2,in GoLeaderAppend, append loop:75, send append to 0
-peer:2,send append success, append loop:75, send append to 1
-peer:2,send append success, append loop:75, send append to 0
-peer:2,append loop:76
-peer:2,in GoLeaderAppend, append loop:76, send append to 0
-peer:2,append loop:76
-peer:2,in GoLeaderAppend, append loop:76, send append to 1
-peer:2,send append success, append loop:76, send append to 1
-peer:2,send append success, append loop:76, send append to 0
-peer:2,append loop:77
-peer:2,in GoLeaderAppend, append loop:77, send append to 0
-peer:2,send append success, append loop:77, send append to 0
-peer:2,append loop:77
-peer:2,in GoLeaderAppend, append loop:77, send append to 1
-peer:2,send append success, append loop:77, send append to 1
-peer:2,append loop:78
-peer:2,in GoLeaderAppend, append loop:78, send append to 1
-peer:2,send append success, append loop:78, send append to 1
-peer:2,append loop:78
-peer:2,in GoLeaderAppend, append loop:78, send append to 0
-peer:2,send append success, append loop:78, send append to 0
-peer:2,append loop:79
-peer:2,in GoLeaderAppend, append loop:79, send append to 1
-peer:2,append loop:79
-peer:2,in GoLeaderAppend, append loop:79, send append to 0
-peer:2,send append success, append loop:79, send append to 1
-peer:2,send append success, append loop:79, send append to 0
-peer:2,append loop:80
-peer:2,append loop:80
-peer:2,in GoLeaderAppend, append loop:80, send append to 1
-peer:2,send append success, append loop:80, send append to 1
-peer:2,in GoLeaderAppend, append loop:80, send append to 0
-peer:2,send append success, append loop:80, send append to 0
-peer:2,append loop:81
-peer:2,in GoLeaderAppend, append loop:81, send append to 0
-peer:2,append loop:81
-peer:2,in GoLeaderAppend, append loop:81, send append to 1
-peer:2,send append success, append loop:81, send append to 0
-peer:2,send append success, append loop:81, send append to 1
-peer:2,append loop:82
-peer:2,in GoLeaderAppend, append loop:82, send append to 0
-peer:2,append loop:82
-peer:2,in GoLeaderAppend, append loop:82, send append to 1
-peer:2,send append success, append loop:82, send append to 0
-peer:2,send append success, append loop:82, send append to 1
-peer:2,append loop:83
-peer:2,append loop:83
-peer:2,in GoLeaderAppend, append loop:83, send append to 0
-peer:2,send append success, append loop:83, send append to 0
-peer:2,in GoLeaderAppend, append loop:83, send append to 1
-peer:2,send append success, append loop:83, send append to 1
-peer:2,append loop:84
-peer:2,in GoLeaderAppend, append loop:84, send append to 0
-peer:2,append loop:84
-peer:2,in GoLeaderAppend, append loop:84, send append to 1
-peer:2,send append success, append loop:84, send append to 0
-peer:2,send append success, append loop:84, send append to 1
-peer:2,append loop:85
-peer:2,in GoLeaderAppend, append loop:85, send append to 0
-peer:2,append loop:85
-peer:2,in GoLeaderAppend, append loop:85, send append to 1
-peer:2,send append success, append loop:85, send append to 1
-peer:2,send append success, append loop:85, send append to 0
-peer:2,append loop:86
-peer:2,in GoLeaderAppend, append loop:86, send append to 0
-peer:2,send append success, append loop:86, send append to 0
-peer:2,append loop:86
-peer:2,in GoLeaderAppend, append loop:86, send append to 1
-peer:2,send append success, append loop:86, send append to 1
-peer:2,append loop:87
-peer:2,in GoLeaderAppend, append loop:87, send append to 0
-peer:2,append loop:87
-peer:2,in GoLeaderAppend, append loop:87, send append to 1
-peer:2,send append success, append loop:87, send append to 0
-peer:2,send append success, append loop:87, send append to 1
-peer:2,append loop:88
-peer:2,in GoLeaderAppend, append loop:88, send append to 1
-peer:2,append loop:88
-peer:2,in GoLeaderAppend, append loop:88, send append to 0
-peer:2,send append success, append loop:88, send append to 0
-peer:2,send append success, append loop:88, send append to 1
-peer:2,append loop:89
-peer:2,in GoLeaderAppend, append loop:89, send append to 0
-peer:2,send append success, append loop:89, send append to 0
-peer:2,append loop:89
-peer:2,in GoLeaderAppend, append loop:89, send append to 1
-peer:2,send append success, append loop:89, send append to 1
-peer:2,append loop:90
-peer:2,in GoLeaderAppend, append loop:90, send append to 0
-peer:2,append loop:90
-peer:2,in GoLeaderAppend, append loop:90, send append to 1
-peer:2,send append success, append loop:90, send append to 1
-peer:2,send append success, append loop:90, send append to 0
-peer:2,append loop:91
-peer:2,in GoLeaderAppend, append loop:91, send append to 0
-peer:2,append loop:91
-peer:2,in GoLeaderAppend, append loop:91, send append to 1
-peer:2,send append success, append loop:91, send append to 0
-peer:2,send append success, append loop:91, send append to 1
-peer:2,append loop:92
-peer:2,in GoLeaderAppend, append loop:92, send append to 0
-peer:2,append loop:92
-peer:2,in GoLeaderAppend, append loop:92, send append to 1
-peer:2,send append success, append loop:92, send append to 1
-peer:2,send append success, append loop:92, send append to 0
-peer:2,append loop:93
-peer:2,append loop:93
-peer:2,in GoLeaderAppend, append loop:93, send append to 1
-peer:2,in GoLeaderAppend, append loop:93, send append to 0
-peer:2,send append success, append loop:93, send append to 0
-peer:2,send append success, append loop:93, send append to 1
-peer:2,append loop:94
-peer:2,in GoLeaderAppend, append loop:94, send append to 1
-peer:2,send append success, append loop:94, send append to 1
-peer:2,append loop:94
-peer:2,in GoLeaderAppend, append loop:94, send append to 0
-peer:2,send append success, append loop:94, send append to 0
-peer:2,append loop:95
-peer:2,in GoLeaderAppend, append loop:95, send append to 1
-peer:2,append loop:95
-peer:2,in GoLeaderAppend, append loop:95, send append to 0
-peer:2,send append success, append loop:95, send append to 0
-peer:2,send append success, append loop:95, send append to 1
-peer:2,append loop:96
-peer:2,in GoLeaderAppend, append loop:96, send append to 0
-peer:2,append loop:96
-peer:2,in GoLeaderAppend, append loop:96, send append to 1
-peer:2,send append success, append loop:96, send append to 0
-peer:2,send append success, append loop:96, send append to 1
-peer:2,append loop:97
-peer:2,in GoLeaderAppend, append loop:97, send append to 0
-peer:2,append loop:97
-peer:2,in GoLeaderAppend, append loop:97, send append to 1
-peer:2,send append success, append loop:97, send append to 1
-peer:2,send append success, append loop:97, send append to 0
-peer:2,append loop:98
-peer:2,in GoLeaderAppend, append loop:98, send append to 1
-peer:2,append loop:98
-peer:2,in GoLeaderAppend, append loop:98, send append to 0
-peer:2,send append success, append loop:98, send append to 1
-peer:2,send append success, append loop:98, send append to 0
-peer:2,append loop:99
-peer:2,in GoLeaderAppend, append loop:99, send append to 1
-peer:2,append loop:99
-peer:2,in GoLeaderAppend, append loop:99, send append to 0
-peer:2,send append success, append loop:99, send append to 1
-peer:2,send append success, append loop:99, send append to 0
-peer:2,append loop:100
-peer:2,in GoLeaderAppend, append loop:100, send append to 1
-peer:2,send append success, append loop:100, send append to 1
-peer:2,append loop:100
-peer:2,in GoLeaderAppend, append loop:100, send append to 0
-peer:2,send append success, append loop:100, send append to 0
-peer:2,append loop:101
-peer:2,in GoLeaderAppend, append loop:101, send append to 0
-peer:2,send append success, append loop:101, send append to 0
-peer:2,append loop:101
-peer:2,in GoLeaderAppend, append loop:101, send append to 1
-peer:2,send append success, append loop:101, send append to 1
-peer:2,append loop:102
-peer:2,append loop:102
-peer:2,in GoLeaderAppend, append loop:102, send append to 0
-peer:2,in GoLeaderAppend, append loop:102, send append to 1
-peer:2,send append success, append loop:102, send append to 0
-peer:2,send append success, append loop:102, send append to 1
-peer:2,append loop:103
-peer:2,in GoLeaderAppend, append loop:103, send append to 1
-peer:2,append loop:103
-peer:2,in GoLeaderAppend, append loop:103, send append to 0
-peer:2,send append success, append loop:103, send append to 0
-peer:2,send append success, append loop:103, send append to 1
-peer:2,append loop:104
-peer:2,in GoLeaderAppend, append loop:104, send append to 1
-peer:2,append loop:104
-peer:2,in GoLeaderAppend, append loop:104, send append to 0
-peer:2,send append success, append loop:104, send append to 0
-peer:2,send append success, append loop:104, send append to 1
-peer:2,append loop:105
-peer:2,in GoLeaderAppend, append loop:105, send append to 1
-peer:2,send append success, append loop:105, send append to 1
-peer:2,append loop:105
-peer:2,in GoLeaderAppend, append loop:105, send append to 0
-peer:2,send append success, append loop:105, send append to 0
-peer:2,append loop:106
-peer:2,in GoLeaderAppend, append loop:106, send append to 1
-peer:2,append loop:106
-peer:2,in GoLeaderAppend, append loop:106, send append to 0
-peer:2,send append success, append loop:106, send append to 0
-peer:2,send append success, append loop:106, send append to 1
-peer:2,append loop:107
-peer:2,in GoLeaderAppend, append loop:107, send append to 1
-peer:2,append loop:107
-peer:2,in GoLeaderAppend, append loop:107, send append to 0
-peer:2,send append success, append loop:107, send append to 1
-peer:2,send append success, append loop:107, send append to 0
-peer:2,append loop:108
-peer:2,in GoLeaderAppend, append loop:108, send append to 1
-peer:2,send append success, append loop:108, send append to 1
-peer:2,append loop:108
-peer:2,in GoLeaderAppend, append loop:108, send append to 0
-peer:2,send append success, append loop:108, send append to 0
-peer:2,append loop:109
-peer:2,in GoLeaderAppend, append loop:109, send append to 1
-peer:2,append loop:109
-peer:2,in GoLeaderAppend, append loop:109, send append to 0
-peer:2,send append success, append loop:109, send append to 1
-peer:2,send append success, append loop:109, send append to 0
-peer:2,append loop:110
-peer:2,in GoLeaderAppend, append loop:110, send append to 1
-peer:2,append loop:110
-peer:2,in GoLeaderAppend, append loop:110, send append to 0
-peer:2,send append success, append loop:110, send append to 0
-peer:2,send append success, append loop:110, send append to 1
-peer:2,append loop:111
-peer:2,in GoLeaderAppend, append loop:111, send append to 1
-peer:2,append loop:111
-peer:2,in GoLeaderAppend, append loop:111, send append to 0
-peer:2,send append success, append loop:111, send append to 1
-peer:2,send append success, append loop:111, send append to 0
-peer:2,append loop:112
-peer:2,in GoLeaderAppend, append loop:112, send append to 1
-peer:2,append loop:112
-peer:2,in GoLeaderAppend, append loop:112, send append to 0
-peer:2,send append success, append loop:112, send append to 0
-peer:2,send append success, append loop:112, send append to 1
-peer:2,append loop:113
-peer:2,in GoLeaderAppend, append loop:113, send append to 1
-peer:2,append loop:113
-peer:2,in GoLeaderAppend, append loop:113, send append to 0
-peer:2,send append success, append loop:113, send append to 1
-peer:2,send append success, append loop:113, send append to 0
-peer:2,append loop:114
-peer:2,in GoLeaderAppend, append loop:114, send append to 1
-peer:2,append loop:114
-peer:2,in GoLeaderAppend, append loop:114, send append to 0
-peer:2,send append success, append loop:114, send append to 0
-peer:2,send append success, append loop:114, send append to 1
-peer:2,append loop:115
-peer:2,in GoLeaderAppend, append loop:115, send append to 0
-peer:2,append loop:115
-peer:2,in GoLeaderAppend, append loop:115, send append to 1
-peer:2,send append success, append loop:115, send append to 0
-peer:2,send append success, append loop:115, send append to 1
-peer:2,append loop:116
-peer:2,in GoLeaderAppend, append loop:116, send append to 1
-peer:2,append loop:116
-peer:2,in GoLeaderAppend, append loop:116, send append to 0
-peer:2,send append success, append loop:116, send append to 1
-peer:2,send append success, append loop:116, send append to 0
-peer:2,append loop:117
-peer:2,in GoLeaderAppend, append loop:117, send append to 0
-peer:2,send append success, append loop:117, send append to 0
-peer:2,append loop:117
-peer:2,in GoLeaderAppend, append loop:117, send append to 1
-peer:2,send append success, append loop:117, send append to 1
-peer:2,append loop:118
-peer:2,in GoLeaderAppend, append loop:118, send append to 1
-peer:2,append loop:118
-peer:2,in GoLeaderAppend, append loop:118, send append to 0
-peer:2,send append success, append loop:118, send append to 1
-peer:2,send append success, append loop:118, send append to 0
-peer:2,append loop:119
-peer:2,in GoLeaderAppend, append loop:119, send append to 0
-peer:2,append loop:119
-peer:2,in GoLeaderAppend, append loop:119, send append to 1
-peer:2,send append success, append loop:119, send append to 1
-peer:2,send append success, append loop:119, send append to 0
-peer:2,append loop:120
-peer:2,in GoLeaderAppend, append loop:120, send append to 0
-peer:2,send append success, append loop:120, send append to 0
-peer:2,append loop:120
-peer:2,in GoLeaderAppend, append loop:120, send append to 1
-peer:2,send append success, append loop:120, send append to 1
-peer:2,append loop:121
-peer:2,in GoLeaderAppend, append loop:121, send append to 1
-peer:2,send append success, append loop:121, send append to 1
-peer:2,append loop:121
-peer:2,in GoLeaderAppend, append loop:121, send append to 0
-peer:2,send append success, append loop:121, send append to 0
-peer:2,append loop:122
-peer:2,in GoLeaderAppend, append loop:122, send append to 0
-peer:2,append loop:122
-peer:2,in GoLeaderAppend, append loop:122, send append to 1
-peer:2,send append success, append loop:122, send append to 1
-peer:2,send append success, append loop:122, send append to 0
-peer:2,append loop:123
-peer:2,in GoLeaderAppend, append loop:123, send append to 0
-peer:2,append loop:123
-peer:2,in GoLeaderAppend, append loop:123, send append to 1
-peer:2,send append success, append loop:123, send append to 0
-peer:2,send append success, append loop:123, send append to 1
-peer:2,append loop:124
-peer:2,in GoLeaderAppend, append loop:124, send append to 1
-peer:2,append loop:124
-peer:2,in GoLeaderAppend, append loop:124, send append to 0
-peer:2,send append success, append loop:124, send append to 1
-peer:2,send append success, append loop:124, send append to 0
-peer:2,append loop:125
-peer:2,in GoLeaderAppend, append loop:125, send append to 1
-peer:2,append loop:125
-peer:2,in GoLeaderAppend, append loop:125, send append to 0
-peer:2,send append success, append loop:125, send append to 0
-peer:2,send append success, append loop:125, send append to 1
-peer:2,append loop:126
-peer:2,in GoLeaderAppend, append loop:126, send append to 1
-peer:2,send append success, append loop:126, send append to 1
-peer:2,append loop:126
-peer:2,in GoLeaderAppend, append loop:126, send append to 0
-peer:2,send append success, append loop:126, send append to 0
-peer:2,append loop:127
-peer:2,in GoLeaderAppend, append loop:127, send append to 0
-peer:2,append loop:127
-peer:2,in GoLeaderAppend, append loop:127, send append to 1
-peer:2,send append success, append loop:127, send append to 0
-peer:2,send append success, append loop:127, send append to 1
-peer:2,append loop:128
-peer:2,in GoLeaderAppend, append loop:128, send append to 0
-peer:2,append loop:128
-peer:2,in GoLeaderAppend, append loop:128, send append to 1
-peer:2,send append success, append loop:128, send append to 0
-peer:2,send append success, append loop:128, send append to 1
-peer:2,append loop:129
-peer:2,in GoLeaderAppend, append loop:129, send append to 0
-peer:2,send append success, append loop:129, send append to 0
-peer:2,append loop:129
-peer:2,in GoLeaderAppend, append loop:129, send append to 1
-peer:2,send append success, append loop:129, send append to 1
-peer:2,append loop:130
-peer:2,append loop:130
-peer:2,in GoLeaderAppend, append loop:130, send append to 0
-peer:2,in GoLeaderAppend, append loop:130, send append to 1
-peer:2,send append success, append loop:130, send append to 1
-peer:2,send append success, append loop:130, send append to 0
-peer:2,append loop:131
-peer:2,in GoLeaderAppend, append loop:131, send append to 1
-peer:2,send append success, append loop:131, send append to 1
-peer:2,append loop:131
-peer:2,in GoLeaderAppend, append loop:131, send append to 0
-peer:2,send append success, append loop:131, send append to 0
-peer:2,append loop:132
-peer:2,in GoLeaderAppend, append loop:132, send append to 1
-peer:2,append loop:132
-peer:2,in GoLeaderAppend, append loop:132, send append to 0
-peer:2,send append success, append loop:132, send append to 1
-peer:2,send append success, append loop:132, send append to 0
-peer:2,append loop:133
-peer:2,in GoLeaderAppend, append loop:133, send append to 1
-peer:2,append loop:133
-peer:2,in GoLeaderAppend, append loop:133, send append to 0
-peer:2,send append success, append loop:133, send append to 0
-peer:2,send append success, append loop:133, send append to 1
-peer:2,append loop:134
-peer:2,in GoLeaderAppend, append loop:134, send append to 1
-peer:2,append loop:134
-peer:2,in GoLeaderAppend, append loop:134, send append to 0
-peer:2,send append success, append loop:134, send append to 1
-peer:2,send append success, append loop:134, send append to 0
-peer:2,append loop:135
-peer:2,in GoLeaderAppend, append loop:135, send append to 1
-peer:2,send append success, append loop:135, send append to 1
-peer:2,append loop:135
-peer:2,in GoLeaderAppend, append loop:135, send append to 0
-peer:2,send append success, append loop:135, send append to 0
-peer:2,append loop:136
-peer:2,in GoLeaderAppend, append loop:136, send append to 0
-peer:2,append loop:136
-peer:2,in GoLeaderAppend, append loop:136, send append to 1
-peer:2,send append success, append loop:136, send append to 0
-peer:2,send append success, append loop:136, send append to 1
-peer:2,append loop:137
-peer:2,in GoLeaderAppend, append loop:137, send append to 1
-peer:2,send append success, append loop:137, send append to 1
-peer:2,append loop:137
-peer:2,in GoLeaderAppend, append loop:137, send append to 0
-peer:2,send append success, append loop:137, send append to 0
-peer:2,append loop:138
-peer:2,append loop:138
-peer:2,in GoLeaderAppend, append loop:138, send append to 0
-peer:2,in GoLeaderAppend, append loop:138, send append to 1
-peer:2,send append success, append loop:138, send append to 1
-peer:2,send append success, append loop:138, send append to 0
-peer:2,append loop:139
-peer:2,in GoLeaderAppend, append loop:139, send append to 1
-peer:2,append loop:139
-peer:2,in GoLeaderAppend, append loop:139, send append to 0
-peer:2,send append success, append loop:139, send append to 1
-peer:2,send append success, append loop:139, send append to 0
-peer:2,append loop:140
-peer:2,in GoLeaderAppend, append loop:140, send append to 1
-peer:2,append loop:140
-peer:2,in GoLeaderAppend, append loop:140, send append to 0
-peer:2,send append success, append loop:140, send append to 1
-peer:2,send append success, append loop:140, send append to 0
-peer:2,append loop:141
-peer:2,in GoLeaderAppend, append loop:141, send append to 0
-peer:2,append loop:141
-peer:2,in GoLeaderAppend, append loop:141, send append to 1
-peer:2,send append success, append loop:141, send append to 1
-peer:2,send append success, append loop:141, send append to 0
-peer:2,append loop:142
-peer:2,in GoLeaderAppend, append loop:142, send append to 0
-peer:2,append loop:142
-peer:2,in GoLeaderAppend, append loop:142, send append to 1
-peer:2,send append success, append loop:142, send append to 0
-peer:2,send append success, append loop:142, send append to 1
-peer:2,append loop:143
-peer:2,in GoLeaderAppend, append loop:143, send append to 0
-peer:2,send append success, append loop:143, send append to 0
-peer:2,append loop:143
-peer:2,in GoLeaderAppend, append loop:143, send append to 1
-peer:2,send append success, append loop:143, send append to 1
-peer:2,append loop:144
-peer:2,in GoLeaderAppend, append loop:144, send append to 0
-peer:2,append loop:144
-peer:2,in GoLeaderAppend, append loop:144, send append to 1
-peer:2,send append success, append loop:144, send append to 0
-peer:2,send append success, append loop:144, send append to 1
-peer:2,append loop:145
-peer:2,in GoLeaderAppend, append loop:145, send append to 0
-peer:2,send append success, append loop:145, send append to 0
-peer:2,append loop:145
-peer:2,in GoLeaderAppend, append loop:145, send append to 1
-peer:2,send append success, append loop:145, send append to 1
-peer:2,append loop:146
-peer:2,in GoLeaderAppend, append loop:146, send append to 0
-peer:2,send append success, append loop:146, send append to 0
-peer:2,append loop:146
-peer:2,in GoLeaderAppend, append loop:146, send append to 1
-peer:2,send append success, append loop:146, send append to 1
-peer:2,append loop:147
-peer:2,append loop:147
-peer:2,in GoLeaderAppend, append loop:147, send append to 0
-peer:2,in GoLeaderAppend, append loop:147, send append to 1
-peer:2,send append success, append loop:147, send append to 0
-peer:2,send append success, append loop:147, send append to 1
-peer:2,append loop:148
-peer:2,in GoLeaderAppend, append loop:148, send append to 0
-peer:2,append loop:148
-peer:2,in GoLeaderAppend, append loop:148, send append to 1
-peer:2,send append success, append loop:148, send append to 0
-peer:2,send append success, append loop:148, send append to 1
-peer:2,append loop:149
-peer:2,in GoLeaderAppend, append loop:149, send append to 0
-peer:2,send append success, append loop:149, send append to 0
-peer:2,append loop:149
-peer:2,in GoLeaderAppend, append loop:149, send append to 1
-peer:2,send append success, append loop:149, send append to 1
-peer:2,append loop:150
-peer:2,in GoLeaderAppend, append loop:150, send append to 1
-peer:2,append loop:150
-peer:2,in GoLeaderAppend, append loop:150, send append to 0
-peer:2,send append success, append loop:150, send append to 1
-peer:2,send append success, append loop:150, send append to 0
-peer:2,append loop:151
-peer:2,in GoLeaderAppend, append loop:151, send append to 1
-peer:2,append loop:151
-peer:2,in GoLeaderAppend, append loop:151, send append to 0
-peer:2,send append success, append loop:151, send append to 1
-peer:2,send append success, append loop:151, send append to 0
-peer:2,append loop:152
-peer:2,in GoLeaderAppend, append loop:152, send append to 1
-peer:2,send append success, append loop:152, send append to 1
-peer:2,append loop:152
-peer:2,in GoLeaderAppend, append loop:152, send append to 0
-peer:2,send append success, append loop:152, send append to 0
-peer:2,append loop:153
-peer:2,in GoLeaderAppend, append loop:153, send append to 1
-peer:2,append loop:153
-peer:2,in GoLeaderAppend, append loop:153, send append to 0
-peer:2,send append success, append loop:153, send append to 1
-peer:2,send append success, append loop:153, send append to 0
-peer:2,append loop:154
-peer:2,in GoLeaderAppend, append loop:154, send append to 0
-peer:2,append loop:154
-peer:2,in GoLeaderAppend, append loop:154, send append to 1
-peer:2,send append success, append loop:154, send append to 0
-peer:2,send append success, append loop:154, send append to 1
-peer:2,append loop:155
-peer:2,in GoLeaderAppend, append loop:155, send append to 0
-peer:2,send append success, append loop:155, send append to 0
-peer:2,append loop:155
-peer:2,in GoLeaderAppend, append loop:155, send append to 1
-peer:2,send append success, append loop:155, send append to 1
-peer:2,append loop:156
-peer:2,in GoLeaderAppend, append loop:156, send append to 1
-peer:2,send append success, append loop:156, send append to 1
-peer:2,append loop:156
-peer:2,in GoLeaderAppend, append loop:156, send append to 0
-peer:2,send append success, append loop:156, send append to 0
-peer:2,append loop:157
-peer:2,in GoLeaderAppend, append loop:157, send append to 0
-peer:2,send append success, append loop:157, send append to 0
-peer:2,append loop:157
-peer:2,in GoLeaderAppend, append loop:157, send append to 1
-peer:2,send append success, append loop:157, send append to 1
-peer:2,append loop:158
-peer:2,in GoLeaderAppend, append loop:158, send append to 0
-peer:2,send append success, append loop:158, send append to 0
-peer:2,append loop:158
-peer:2,in GoLeaderAppend, append loop:158, send append to 1
-peer:2,send append success, append loop:158, send append to 1
-peer:2,append loop:159
-peer:2,in GoLeaderAppend, append loop:159, send append to 1
-peer:2,send append success, append loop:159, send append to 1
-peer:2,append loop:159
-peer:2,in GoLeaderAppend, append loop:159, send append to 0
-peer:2,send append success, append loop:159, send append to 0
-peer:2,append loop:160
-peer:2,in GoLeaderAppend, append loop:160, send append to 0
-peer:2,append loop:160
-peer:2,in GoLeaderAppend, append loop:160, send append to 1
-peer:2,send append success, append loop:160, send append to 0
-peer:2,send append success, append loop:160, send append to 1
-peer:2,append loop:161
-peer:2,in GoLeaderAppend, append loop:161, send append to 0
-peer:2,append loop:161
-peer:2,in GoLeaderAppend, append loop:161, send append to 1
-peer:2,send append success, append loop:161, send append to 0
-peer:2,send append success, append loop:161, send append to 1
-peer:2,append loop:162
-peer:2,in GoLeaderAppend, append loop:162, send append to 1
-peer:2,append loop:162
-peer:2,in GoLeaderAppend, append loop:162, send append to 0
-peer:2,send append success, append loop:162, send append to 1
-peer:2,send append success, append loop:162, send append to 0
-peer:2,append loop:163
-peer:2,in GoLeaderAppend, append loop:163, send append to 1
-peer:2,append loop:163
-peer:2,in GoLeaderAppend, append loop:163, send append to 0
-peer:2,send append success, append loop:163, send append to 1
-peer:2,send append success, append loop:163, send append to 0
-peer:2,append loop:164
-peer:2,in GoLeaderAppend, append loop:164, send append to 0
-peer:2,send append success, append loop:164, send append to 0
-peer:2,append loop:164
-peer:2,in GoLeaderAppend, append loop:164, send append to 1
-peer:2,send append success, append loop:164, send append to 1
-peer:2,append loop:165
-peer:2,append loop:165
-peer:2,in GoLeaderAppend, append loop:165, send append to 0
-peer:2,in GoLeaderAppend, append loop:165, send append to 1
-peer:2,send append success, append loop:165, send append to 0
-peer:2,send append success, append loop:165, send append to 1
-peer:2,append loop:166
-peer:2,in GoLeaderAppend, append loop:166, send append to 1
-peer:2,append loop:166
-peer:2,in GoLeaderAppend, append loop:166, send append to 0
-peer:2,send append success, append loop:166, send append to 0
-peer:2,send append success, append loop:166, send append to 1
-peer:2,append loop:167
-peer:2,in GoLeaderAppend, append loop:167, send append to 0
-peer:2,send append success, append loop:167, send append to 0
-peer:2,append loop:167
-peer:2,in GoLeaderAppend, append loop:167, send append to 1
-peer:2,send append success, append loop:167, send append to 1
-peer:2,append loop:168
-peer:2,in GoLeaderAppend, append loop:168, send append to 0
-peer:2,append loop:168
-peer:2,in GoLeaderAppend, append loop:168, send append to 1
-peer:2,send append success, append loop:168, send append to 0
-peer:2,send append success, append loop:168, send append to 1
-peer:2,append loop:169
-peer:2,in GoLeaderAppend, append loop:169, send append to 1
-peer:2,append loop:169
-peer:2,in GoLeaderAppend, append loop:169, send append to 0
-peer:2,send append success, append loop:169, send append to 0
-peer:2,send append success, append loop:169, send append to 1
-peer:2,append loop:170
-peer:2,in GoLeaderAppend, append loop:170, send append to 1
-peer:2,append loop:170
-peer:2,in GoLeaderAppend, append loop:170, send append to 0
-peer:2,send append success, append loop:170, send append to 0
-peer:2,send append success, append loop:170, send append to 1
-peer:2,append loop:171
-peer:2,in GoLeaderAppend, append loop:171, send append to 0
-peer:2,send append success, append loop:171, send append to 0
-peer:2,append loop:171
-peer:2,in GoLeaderAppend, append loop:171, send append to 1
-peer:2,send append success, append loop:171, send append to 1
-peer:2,append loop:172
-peer:2,in GoLeaderAppend, append loop:172, send append to 1
-peer:2,send append success, append loop:172, send append to 1
-peer:2,append loop:172
-peer:2,in GoLeaderAppend, append loop:172, send append to 0
-peer:2,send append success, append loop:172, send append to 0
-peer:2,append loop:173
-peer:2,in GoLeaderAppend, append loop:173, send append to 0
-peer:2,append loop:173
-peer:2,in GoLeaderAppend, append loop:173, send append to 1
-peer:2,send append success, append loop:173, send append to 0
-peer:2,send append success, append loop:173, send append to 1
-peer:2,append loop:174
-peer:2,in GoLeaderAppend, append loop:174, send append to 1
-peer:2,append loop:174
-peer:2,in GoLeaderAppend, append loop:174, send append to 0
-peer:2,send append success, append loop:174, send append to 0
-peer:2,send append success, append loop:174, send append to 1
-peer:2,append loop:175
-peer:2,in GoLeaderAppend, append loop:175, send append to 1
-peer:2,append loop:175
-peer:2,in GoLeaderAppend, append loop:175, send append to 0
-peer:2,send append success, append loop:175, send append to 0
-peer:2,send append success, append loop:175, send append to 1
-peer:2,append loop:176
-peer:2,in GoLeaderAppend, append loop:176, send append to 1
-peer:2,append loop:176
-peer:2,in GoLeaderAppend, append loop:176, send append to 0
-peer:2,send append success, append loop:176, send append to 1
-peer:2,send append success, append loop:176, send append to 0
-peer:2,append loop:177
-peer:2,in GoLeaderAppend, append loop:177, send append to 1
-peer:2,append loop:177
-peer:2,in GoLeaderAppend, append loop:177, send append to 0
-peer:2,send append success, append loop:177, send append to 0
-peer:2,send append success, append loop:177, send append to 1
-peer:2,append loop:178
-peer:2,in GoLeaderAppend, append loop:178, send append to 0
-peer:2,send append success, append loop:178, send append to 0
-peer:2,append loop:178
-peer:2,in GoLeaderAppend, append loop:178, send append to 1
-peer:2,send append success, append loop:178, send append to 1
-peer:2,append loop:179
-peer:2,in GoLeaderAppend, append loop:179, send append to 0
-peer:2,append loop:179
-peer:2,in GoLeaderAppend, append loop:179, send append to 1
-peer:2,send append success, append loop:179, send append to 0
-peer:2,send append success, append loop:179, send append to 1
-peer:2,append loop:180
-peer:2,in GoLeaderAppend, append loop:180, send append to 0
-peer:2,append loop:180
-peer:2,in GoLeaderAppend, append loop:180, send append to 1
-peer:2,send append success, append loop:180, send append to 0
-peer:2,send append success, append loop:180, send append to 1
-peer:2,append loop:181
-peer:2,in GoLeaderAppend, append loop:181, send append to 0
-peer:2,send append success, append loop:181, send append to 0
-peer:2,append loop:181
-peer:2,in GoLeaderAppend, append loop:181, send append to 1
-peer:2,send append success, append loop:181, send append to 1
-peer:2,append loop:182
-peer:2,in GoLeaderAppend, append loop:182, send append to 1
-peer:2,append loop:182
-peer:2,in GoLeaderAppend, append loop:182, send append to 0
-peer:2,send append success, append loop:182, send append to 1
-peer:2,send append success, append loop:182, send append to 0
-peer:2,append loop:183
-peer:2,in GoLeaderAppend, append loop:183, send append to 1
-peer:2,append loop:183
-peer:2,in GoLeaderAppend, append loop:183, send append to 0
-peer:2,send append success, append loop:183, send append to 1
-peer:2,send append success, append loop:183, send append to 0
-peer:2,append loop:184
-peer:2,in GoLeaderAppend, append loop:184, send append to 1
-peer:2,send append success, append loop:184, send append to 1
-peer:2,append loop:184
-peer:2,in GoLeaderAppend, append loop:184, send append to 0
-peer:2,send append success, append loop:184, send append to 0
-peer:2,append loop:185
-peer:2,in GoLeaderAppend, append loop:185, send append to 0
-peer:2,send append success, append loop:185, send append to 0
-peer:2,append loop:185
-peer:2,in GoLeaderAppend, append loop:185, send append to 1
-peer:2,send append success, append loop:185, send append to 1
-peer:2,append loop:186
-peer:2,in GoLeaderAppend, append loop:186, send append to 1
-peer:2,append loop:186
-peer:2,in GoLeaderAppend, append loop:186, send append to 0
-peer:2,send append success, append loop:186, send append to 0
-peer:2,send append success, append loop:186, send append to 1
-peer:2,append loop:187
-peer:2,in GoLeaderAppend, append loop:187, send append to 1
-peer:2,append loop:187
-peer:2,in GoLeaderAppend, append loop:187, send append to 0
-peer:2,send append success, append loop:187, send append to 1
-peer:2,send append success, append loop:187, send append to 0
-peer:2,append loop:188
-peer:2,in GoLeaderAppend, append loop:188, send append to 0
-peer:2,append loop:188
-peer:2,in GoLeaderAppend, append loop:188, send append to 1
-peer:2,send append success, append loop:188, send append to 0
-peer:2,send append success, append loop:188, send append to 1
-peer:2,append loop:189
-peer:2,in GoLeaderAppend, append loop:189, send append to 1
-peer:2,append loop:189
-peer:2,in GoLeaderAppend, append loop:189, send append to 0
-peer:2,send append success, append loop:189, send append to 1
-peer:2,send append success, append loop:189, send append to 0
-peer:2,append loop:190
-peer:2,in GoLeaderAppend, append loop:190, send append to 1
-peer:2,send append success, append loop:190, send append to 1
-peer:2,append loop:190
-peer:2,in GoLeaderAppend, append loop:190, send append to 0
-peer:2,send append success, append loop:190, send append to 0
-peer:2,append loop:191
-peer:2,in GoLeaderAppend, append loop:191, send append to 0
-peer:2,append loop:191
-peer:2,in GoLeaderAppend, append loop:191, send append to 1
-peer:2,send append success, append loop:191, send append to 0
-peer:2,send append success, append loop:191, send append to 1
-peer:2,append loop:192
-peer:2,in GoLeaderAppend, append loop:192, send append to 0
-peer:2,send append success, append loop:192, send append to 0
-peer:2,append loop:192
-peer:2,in GoLeaderAppend, append loop:192, send append to 1
-peer:2,send append success, append loop:192, send append to 1
-peer:2,append loop:193
-peer:2,in GoLeaderAppend, append loop:193, send append to 1
-peer:2,send append success, append loop:193, send append to 1
-peer:2,append loop:193
-peer:2,in GoLeaderAppend, append loop:193, send append to 0
-peer:2,send append success, append loop:193, send append to 0
-peer:2,append loop:194
-peer:2,in GoLeaderAppend, append loop:194, send append to 0
-peer:2,send append success, append loop:194, send append to 0
-peer:2,append loop:194
-peer:2,in GoLeaderAppend, append loop:194, send append to 1
-peer:2,send append success, append loop:194, send append to 1
-peer:2,append loop:195
-peer:2,in GoLeaderAppend, append loop:195, send append to 0
-peer:2,send append success, append loop:195, send append to 0
-peer:2,append loop:195
-peer:2,in GoLeaderAppend, append loop:195, send append to 1
-peer:2,send append success, append loop:195, send append to 1
-peer:2,append loop:196
-peer:2,in GoLeaderAppend, append loop:196, send append to 0
-peer:2,send append success, append loop:196, send append to 0
-peer:2,append loop:196
-peer:2,in GoLeaderAppend, append loop:196, send append to 1
-peer:2,send append success, append loop:196, send append to 1
-peer:2,append loop:197
-peer:2,in GoLeaderAppend, append loop:197, send append to 0
-peer:2,send append success, append loop:197, send append to 0
-peer:2,append loop:197
-peer:2,in GoLeaderAppend, append loop:197, send append to 1
-peer:2,send append success, append loop:197, send append to 1
-peer:2,append loop:198
-peer:2,append loop:198
-peer:2,in GoLeaderAppend, append loop:198, send append to 0
-peer:2,in GoLeaderAppend, append loop:198, send append to 1
-peer:2,send append success, append loop:198, send append to 1
-peer:2,send append success, append loop:198, send append to 0
-peer:2,append loop:199
-peer:2,in GoLeaderAppend, append loop:199, send append to 0
-peer:2,send append success, append loop:199, send append to 0
-peer:2,append loop:199
-peer:2,in GoLeaderAppend, append loop:199, send append to 1
-peer:2,send append success, append loop:199, send append to 1
-peer:2,append loop:200
-peer:2,in GoLeaderAppend, append loop:200, send append to 1
-peer:2,append loop:200
-peer:2,in GoLeaderAppend, append loop:200, send append to 0
-peer:2,send append success, append loop:200, send append to 1
-peer:2,send append success, append loop:200, send append to 0
-peer:2,append loop:201
-peer:2,in GoLeaderAppend, append loop:201, send append to 1
-peer:2,append loop:201
-peer:2,in GoLeaderAppend, append loop:201, send append to 0
-peer:2,send append success, append loop:201, send append to 1
-peer:2,send append success, append loop:201, send append to 0
-peer:2,append loop:202
-peer:2,in GoLeaderAppend, append loop:202, send append to 0
-peer:2,append loop:202
-peer:2,in GoLeaderAppend, append loop:202, send append to 1
-peer:2,send append success, append loop:202, send append to 0
-peer:2,send append success, append loop:202, send append to 1
-peer:2,append loop:203
-peer:2,in GoLeaderAppend, append loop:203, send append to 0
-peer:2,append loop:203
-peer:2,in GoLeaderAppend, append loop:203, send append to 1
-peer:2,send append success, append loop:203, send append to 1
-peer:2,send append success, append loop:203, send append to 0
-peer:2,append loop:204
-peer:2,in GoLeaderAppend, append loop:204, send append to 1
-peer:2,append loop:204
-peer:2,in GoLeaderAppend, append loop:204, send append to 0
-peer:2,send append success, append loop:204, send append to 1
-peer:2,send append success, append loop:204, send append to 0
-peer:2,append loop:205
-peer:2,append loop:205
-peer:2,in GoLeaderAppend, append loop:205, send append to 1
-peer:2,in GoLeaderAppend, append loop:205, send append to 0
-peer:2,send append success, append loop:205, send append to 1
-peer:2,send append success, append loop:205, send append to 0
-peer:2,append loop:206
-peer:2,in GoLeaderAppend, append loop:206, send append to 0
-peer:2,append loop:206
-peer:2,in GoLeaderAppend, append loop:206, send append to 1
-peer:2,send append success, append loop:206, send append to 0
-peer:2,send append success, append loop:206, send append to 1
-peer:2,append loop:207
-peer:2,in GoLeaderAppend, append loop:207, send append to 1
-peer:2,send append success, append loop:207, send append to 1
-peer:2,append loop:207
-peer:2,in GoLeaderAppend, append loop:207, send append to 0
-peer:2,send append success, append loop:207, send append to 0
-peer:2,append loop:208
-peer:2,in GoLeaderAppend, append loop:208, send append to 1
-peer:2,send append success, append loop:208, send append to 1
-peer:2,append loop:208
-peer:2,in GoLeaderAppend, append loop:208, send append to 0
-peer:2,send append success, append loop:208, send append to 0
-peer:2,append loop:209
-peer:2,in GoLeaderAppend, append loop:209, send append to 0
-peer:2,append loop:209
-peer:2,in GoLeaderAppend, append loop:209, send append to 1
-peer:2,send append success, append loop:209, send append to 0
-peer:2,send append success, append loop:209, send append to 1
-peer:2,append loop:210
-peer:2,in GoLeaderAppend, append loop:210, send append to 1
-peer:2,append loop:210
-peer:2,in GoLeaderAppend, append loop:210, send append to 0
-peer:2,send append success, append loop:210, send append to 1
-peer:2,send append success, append loop:210, send append to 0
-peer:2,append loop:211
-peer:2,in GoLeaderAppend, append loop:211, send append to 0
-peer:2,append loop:211
-peer:2,in GoLeaderAppend, append loop:211, send append to 1
-peer:2,send append success, append loop:211, send append to 0
-peer:2,send append success, append loop:211, send append to 1
-peer:2,append loop:212
-peer:2,in GoLeaderAppend, append loop:212, send append to 1
-peer:2,send append success, append loop:212, send append to 1
-peer:2,append loop:212
-peer:2,in GoLeaderAppend, append loop:212, send append to 0
-peer:2,send append success, append loop:212, send append to 0
-peer:2,append loop:213
-peer:2,in GoLeaderAppend, append loop:213, send append to 0
-peer:2,append loop:213
-peer:2,in GoLeaderAppend, append loop:213, send append to 1
-peer:2,send append success, append loop:213, send append to 0
-peer:2,send append success, append loop:213, send append to 1
-peer:2,append loop:214
-peer:2,in GoLeaderAppend, append loop:214, send append to 1
-peer:2,append loop:214
-peer:2,in GoLeaderAppend, append loop:214, send append to 0
-peer:2,send append success, append loop:214, send append to 1
-peer:2,send append success, append loop:214, send append to 0
-peer:2,append loop:215
-peer:2,in GoLeaderAppend, append loop:215, send append to 1
-peer:2,append loop:215
-peer:2,in GoLeaderAppend, append loop:215, send append to 0
-peer:2,send append success, append loop:215, send append to 0
-peer:2,send append success, append loop:215, send append to 1
-peer:2,append loop:216
-peer:2,in GoLeaderAppend, append loop:216, send append to 0
-peer:2,append loop:216
-peer:2,in GoLeaderAppend, append loop:216, send append to 1
-peer:2,send append success, append loop:216, send append to 0
-peer:2,send append success, append loop:216, send append to 1
-peer:2,append loop:217
-peer:2,in GoLeaderAppend, append loop:217, send append to 1
-peer:2,send append success, append loop:217, send append to 1
-peer:2,append loop:217
-peer:2,in GoLeaderAppend, append loop:217, send append to 0
-peer:2,send append success, append loop:217, send append to 0
-peer:2,append loop:218
-peer:2,in GoLeaderAppend, append loop:218, send append to 1
-peer:2,append loop:218
-peer:2,in GoLeaderAppend, append loop:218, send append to 0
-peer:2,send append success, append loop:218, send append to 1
-peer:2,send append success, append loop:218, send append to 0
-peer:2,append loop:219
-peer:2,in GoLeaderAppend, append loop:219, send append to 1
-peer:2,send append success, append loop:219, send append to 1
-peer:2,append loop:219
-peer:2,in GoLeaderAppend, append loop:219, send append to 0
-peer:2,send append success, append loop:219, send append to 0
-peer:2,append loop:220
-peer:2,in GoLeaderAppend, append loop:220, send append to 1
-peer:2,append loop:220
-peer:2,in GoLeaderAppend, append loop:220, send append to 0
-peer:2,send append success, append loop:220, send append to 0
-peer:2,send append success, append loop:220, send append to 1
-peer:2,append loop:221
-peer:2,in GoLeaderAppend, append loop:221, send append to 0
-peer:2,append loop:221
-peer:2,in GoLeaderAppend, append loop:221, send append to 1
-peer:2,send append success, append loop:221, send append to 0
-peer:2,send append success, append loop:221, send append to 1
-peer:2,append loop:222
-peer:2,in GoLeaderAppend, append loop:222, send append to 1
-peer:2,send append success, append loop:222, send append to 1
-peer:2,append loop:222
-peer:2,in GoLeaderAppend, append loop:222, send append to 0
-peer:2,send append success, append loop:222, send append to 0
-peer:2,append loop:223
-peer:2,in GoLeaderAppend, append loop:223, send append to 0
-peer:2,append loop:223
-peer:2,in GoLeaderAppend, append loop:223, send append to 1
-peer:2,send append success, append loop:223, send append to 0
-peer:2,send append success, append loop:223, send append to 1
-peer:2,append loop:224
-peer:2,in GoLeaderAppend, append loop:224, send append to 1
-peer:2,append loop:224
-peer:2,in GoLeaderAppend, append loop:224, send append to 0
-peer:2,send append success, append loop:224, send append to 1
-peer:2,send append success, append loop:224, send append to 0
-peer:2,append loop:225
-peer:2,in GoLeaderAppend, append loop:225, send append to 1
-peer:2,append loop:225
-peer:2,in GoLeaderAppend, append loop:225, send append to 0
-peer:2,send append success, append loop:225, send append to 1
-peer:2,send append success, append loop:225, send append to 0
-peer:2,append loop:226
-peer:2,in GoLeaderAppend, append loop:226, send append to 0
-peer:2,append loop:226
-peer:2,in GoLeaderAppend, append loop:226, send append to 1
-peer:2,send append success, append loop:226, send append to 1
-peer:2,send append success, append loop:226, send append to 0
-peer:2,append loop:227
-peer:2,in GoLeaderAppend, append loop:227, send append to 1
-peer:2,append loop:227
-peer:2,in GoLeaderAppend, append loop:227, send append to 0
-peer:2,send append success, append loop:227, send append to 1
-peer:2,send append success, append loop:227, send append to 0
-peer:2,append loop:228
-peer:2,in GoLeaderAppend, append loop:228, send append to 1
-peer:2,append loop:228
-peer:2,in GoLeaderAppend, append loop:228, send append to 0
-peer:2,send append success, append loop:228, send append to 0
-peer:2,send append success, append loop:228, send append to 1
-peer:2,append loop:229
-peer:2,in GoLeaderAppend, append loop:229, send append to 1
-peer:2,send append success, append loop:229, send append to 1
-peer:2,append loop:229
-peer:2,in GoLeaderAppend, append loop:229, send append to 0
-peer:2,send append success, append loop:229, send append to 0
-peer:2,append loop:230
-peer:2,in GoLeaderAppend, append loop:230, send append to 0
-peer:2,send append success, append loop:230, send append to 0
-peer:2,append loop:230
-peer:2,in GoLeaderAppend, append loop:230, send append to 1
-peer:2,send append success, append loop:230, send append to 1
-peer:2,append loop:231
-peer:2,append loop:231
-peer:2,in GoLeaderAppend, append loop:231, send append to 0
-peer:2,send append success, append loop:231, send append to 0
-peer:2,in GoLeaderAppend, append loop:231, send append to 1
-peer:2,send append success, append loop:231, send append to 1
-peer:2,append loop:232
-peer:2,in GoLeaderAppend, append loop:232, send append to 1
-peer:2,append loop:232
-peer:2,in GoLeaderAppend, append loop:232, send append to 0
-peer:2,send append success, append loop:232, send append to 1
-peer:2,send append success, append loop:232, send append to 0
-peer:2,append loop:233
-peer:2,in GoLeaderAppend, append loop:233, send append to 1
-peer:2,append loop:233
-peer:2,in GoLeaderAppend, append loop:233, send append to 0
-peer:2,send append success, append loop:233, send append to 1
-peer:2,send append success, append loop:233, send append to 0
-peer:2,append loop:234
-peer:2,in GoLeaderAppend, append loop:234, send append to 0
-peer:2,append loop:234
-peer:2,in GoLeaderAppend, append loop:234, send append to 1
-peer:2,send append success, append loop:234, send append to 0
-peer:2,send append success, append loop:234, send append to 1
-peer:2,append loop:235
-peer:2,append loop:235
-peer:2,in GoLeaderAppend, append loop:235, send append to 1
-peer:2,send append success, append loop:235, send append to 1
-peer:2,in GoLeaderAppend, append loop:235, send append to 0
-peer:2,send append success, append loop:235, send append to 0
-peer:2,append loop:236
-peer:2,in GoLeaderAppend, append loop:236, send append to 1
-peer:2,append loop:236
-peer:2,in GoLeaderAppend, append loop:236, send append to 0
-peer:2,send append success, append loop:236, send append to 1
-peer:2,send append success, append loop:236, send append to 0
-peer:2,append loop:237
-peer:2,in GoLeaderAppend, append loop:237, send append to 0
-peer:2,send append success, append loop:237, send append to 0
-peer:2,append loop:237
-peer:2,in GoLeaderAppend, append loop:237, send append to 1
-peer:2,send append success, append loop:237, send append to 1
-peer:2,append loop:238
-peer:2,in GoLeaderAppend, append loop:238, send append to 0
-peer:2,send append success, append loop:238, send append to 0
-peer:2,append loop:238
-peer:2,in GoLeaderAppend, append loop:238, send append to 1
-peer:2,send append success, append loop:238, send append to 1
-peer:2,append loop:239
-peer:2,in GoLeaderAppend, append loop:239, send append to 0
-peer:2,append loop:239
-peer:2,in GoLeaderAppend, append loop:239, send append to 1
-peer:2,send append success, append loop:239, send append to 0
-peer:2,send append success, append loop:239, send append to 1
-peer:2,append loop:240
-peer:2,in GoLeaderAppend, append loop:240, send append to 0
-peer:2,append loop:240
-peer:2,in GoLeaderAppend, append loop:240, send append to 1
-peer:2,send append success, append loop:240, send append to 1
-peer:2,send append success, append loop:240, send append to 0
-peer:2,append loop:241
-peer:2,in GoLeaderAppend, append loop:241, send append to 0
-peer:2,append loop:241
-peer:2,in GoLeaderAppend, append loop:241, send append to 1
-peer:2,send append success, append loop:241, send append to 0
-peer:2,send append success, append loop:241, send append to 1
-peer:2,append loop:242
-peer:2,in GoLeaderAppend, append loop:242, send append to 0
-peer:2,append loop:242
-peer:2,in GoLeaderAppend, append loop:242, send append to 1
-peer:2,send append success, append loop:242, send append to 0
-peer:2,send append success, append loop:242, send append to 1
-peer:2,append loop:243
-peer:2,append loop:243
-peer:2,in GoLeaderAppend, append loop:243, send append to 1
-peer:2,in GoLeaderAppend, append loop:243, send append to 0
-peer:2,send append success, append loop:243, send append to 1
-peer:2,send append success, append loop:243, send append to 0
-peer:2,append loop:244
-peer:2,in GoLeaderAppend, append loop:244, send append to 1
-peer:2,append loop:244
-peer:2,in GoLeaderAppend, append loop:244, send append to 0
-peer:2,send append success, append loop:244, send append to 1
-peer:2,send append success, append loop:244, send append to 0
-peer:2,append loop:245
-peer:2,in GoLeaderAppend, append loop:245, send append to 0
-peer:2,append loop:245
-peer:2,in GoLeaderAppend, append loop:245, send append to 1
-peer:2,send append success, append loop:245, send append to 0
-peer:2,send append success, append loop:245, send append to 1
-peer:2,append loop:246
-peer:2,in GoLeaderAppend, append loop:246, send append to 1
-peer:2,append loop:246
-peer:2,in GoLeaderAppend, append loop:246, send append to 0
-peer:2,send append success, append loop:246, send append to 1
-peer:2,send append success, append loop:246, send append to 0
-peer:2,append loop:247
-peer:2,in GoLeaderAppend, append loop:247, send append to 1
-peer:2,append loop:247
-peer:2,in GoLeaderAppend, append loop:247, send append to 0
-peer:2,send append success, append loop:247, send append to 1
-peer:2,send append success, append loop:247, send append to 0
-peer:2,append loop:248
-peer:2,in GoLeaderAppend, append loop:248, send append to 0
-peer:2,append loop:248
-peer:2,in GoLeaderAppend, append loop:248, send append to 1
-peer:2,send append success, append loop:248, send append to 0
-peer:2,send append success, append loop:248, send append to 1
-peer:2,append loop:249
-peer:2,in GoLeaderAppend, append loop:249, send append to 0
-peer:2,append loop:249
-peer:2,in GoLeaderAppend, append loop:249, send append to 1
-peer:2,send append success, append loop:249, send append to 1
-peer:2,send append success, append loop:249, send append to 0
-peer:2,append loop:250
-peer:2,in GoLeaderAppend, append loop:250, send append to 0
-peer:2,append loop:250
-peer:2,in GoLeaderAppend, append loop:250, send append to 1
-peer:2,send append success, append loop:250, send append to 0
-peer:2,send append success, append loop:250, send append to 1
-peer:2,append loop:251
-peer:2,in GoLeaderAppend, append loop:251, send append to 1
-peer:2,send append success, append loop:251, send append to 1
-peer:2,append loop:251
-peer:2,in GoLeaderAppend, append loop:251, send append to 0
-peer:2,send append success, append loop:251, send append to 0
-peer:2,append loop:252
-peer:2,in GoLeaderAppend, append loop:252, send append to 0
-peer:2,send append success, append loop:252, send append to 0
-peer:2,append loop:252
-peer:2,in GoLeaderAppend, append loop:252, send append to 1
-peer:2,send append success, append loop:252, send append to 1
-peer:2,append loop:253
-peer:2,in GoLeaderAppend, append loop:253, send append to 1
-peer:2,send append success, append loop:253, send append to 1
-peer:2,append loop:253
-peer:2,in GoLeaderAppend, append loop:253, send append to 0
-peer:2,send append success, append loop:253, send append to 0
-peer:2,append loop:254
-peer:2,in GoLeaderAppend, append loop:254, send append to 0
-peer:2,append loop:254
-peer:2,in GoLeaderAppend, append loop:254, send append to 1
-peer:2,send append success, append loop:254, send append to 1
-peer:2,send append success, append loop:254, send append to 0
-peer:2,append loop:255
-peer:2,in GoLeaderAppend, append loop:255, send append to 0
-peer:2,append loop:255
-peer:2,in GoLeaderAppend, append loop:255, send append to 1
-peer:2,send append success, append loop:255, send append to 0
-peer:2,send append success, append loop:255, send append to 1
-peer:2,append loop:256
-peer:2,in GoLeaderAppend, append loop:256, send append to 1
-peer:2,append loop:256
-peer:2,in GoLeaderAppend, append loop:256, send append to 0
-peer:2,send append success, append loop:256, send append to 1
-peer:2,send append success, append loop:256, send append to 0
-peer:2,append loop:257
-peer:2,in GoLeaderAppend, append loop:257, send append to 1
-peer:2,send append success, append loop:257, send append to 1
-peer:2,append loop:257
-peer:2,in GoLeaderAppend, append loop:257, send append to 0
-peer:2,send append success, append loop:257, send append to 0
-peer:2,append loop:258
-peer:2,in GoLeaderAppend, append loop:258, send append to 0
-peer:2,append loop:258
-peer:2,in GoLeaderAppend, append loop:258, send append to 1
-peer:2,send append success, append loop:258, send append to 1
-peer:2,send append success, append loop:258, send append to 0
-peer:2,append loop:259
-peer:2,in GoLeaderAppend, append loop:259, send append to 0
-peer:2,send append success, append loop:259, send append to 0
-peer:2,append loop:259
-peer:2,in GoLeaderAppend, append loop:259, send append to 1
-peer:2,send append success, append loop:259, send append to 1
-peer:2,append loop:260
-peer:2,in GoLeaderAppend, append loop:260, send append to 0
-peer:2,append loop:260
-peer:2,in GoLeaderAppend, append loop:260, send append to 1
-peer:2,send append success, append loop:260, send append to 0
-peer:2,send append success, append loop:260, send append to 1
-peer:2,append loop:261
-peer:2,in GoLeaderAppend, append loop:261, send append to 1
-peer:2,append loop:261
-peer:2,in GoLeaderAppend, append loop:261, send append to 0
-peer:2,send append success, append loop:261, send append to 1
-peer:2,send append success, append loop:261, send append to 0
-peer:2,append loop:262
-peer:2,in GoLeaderAppend, append loop:262, send append to 1
-peer:2,append loop:262
-peer:2,in GoLeaderAppend, append loop:262, send append to 0
-peer:2,send append success, append loop:262, send append to 1
-peer:2,send append success, append loop:262, send append to 0
-peer:2,append loop:263
-peer:2,in GoLeaderAppend, append loop:263, send append to 0
-peer:2,send append success, append loop:263, send append to 0
-peer:2,append loop:263
-peer:2,in GoLeaderAppend, append loop:263, send append to 1
-peer:2,send append success, append loop:263, send append to 1
-peer:2,append loop:264
-peer:2,in GoLeaderAppend, append loop:264, send append to 0
-peer:2,send append success, append loop:264, send append to 0
-peer:2,append loop:264
-peer:2,in GoLeaderAppend, append loop:264, send append to 1
-peer:2,send append success, append loop:264, send append to 1
-peer:2,append loop:265
-peer:2,in GoLeaderAppend, append loop:265, send append to 1
-peer:2,append loop:265
-peer:2,in GoLeaderAppend, append loop:265, send append to 0
-peer:2,send append success, append loop:265, send append to 0
-peer:2,send append success, append loop:265, send append to 1
-peer:2,append loop:266
-peer:2,in GoLeaderAppend, append loop:266, send append to 1
-peer:2,append loop:266
-peer:2,in GoLeaderAppend, append loop:266, send append to 0
-peer:2,send append success, append loop:266, send append to 1
-peer:2,send append success, append loop:266, send append to 0
-peer:2,append loop:267
-peer:2,in GoLeaderAppend, append loop:267, send append to 1
-peer:2,send append success, append loop:267, send append to 1
-peer:2,append loop:267
-peer:2,in GoLeaderAppend, append loop:267, send append to 0
-peer:2,send append success, append loop:267, send append to 0
-peer:2,append loop:268
-peer:2,in GoLeaderAppend, append loop:268, send append to 1
-peer:2,send append success, append loop:268, send append to 1
-peer:2,append loop:268
-peer:2,in GoLeaderAppend, append loop:268, send append to 0
-peer:2,send append success, append loop:268, send append to 0
-peer:2,append loop:269
-peer:2,in GoLeaderAppend, append loop:269, send append to 1
-peer:2,send append success, append loop:269, send append to 1
-peer:2,append loop:269
-peer:2,in GoLeaderAppend, append loop:269, send append to 0
-peer:2,send append success, append loop:269, send append to 0
-peer:2,append loop:270
-peer:2,in GoLeaderAppend, append loop:270, send append to 0
-peer:2,append loop:270
-peer:2,send append success, append loop:270, send append to 0
-peer:2,in GoLeaderAppend, append loop:270, send append to 1
-peer:2,send append success, append loop:270, send append to 1
-peer:2,append loop:271
-peer:2,in GoLeaderAppend, append loop:271, send append to 1
-peer:2,append loop:271
-peer:2,in GoLeaderAppend, append loop:271, send append to 0
-peer:2,send append success, append loop:271, send append to 1
-peer:2,send append success, append loop:271, send append to 0
-peer:2,append loop:272
-peer:2,in GoLeaderAppend, append loop:272, send append to 1
-peer:2,send append success, append loop:272, send append to 1
-peer:2,append loop:272
-peer:2,in GoLeaderAppend, append loop:272, send append to 0
-peer:2,send append success, append loop:272, send append to 0
-peer:2,append loop:273
-peer:2,in GoLeaderAppend, append loop:273, send append to 1
-peer:2,send append success, append loop:273, send append to 1
-peer:2,append loop:273
-peer:2,in GoLeaderAppend, append loop:273, send append to 0
-peer:2,send append success, append loop:273, send append to 0
-peer:2,append loop:274
-peer:2,in GoLeaderAppend, append loop:274, send append to 1
-peer:2,send append success, append loop:274, send append to 1
-peer:2,append loop:274
-peer:2,in GoLeaderAppend, append loop:274, send append to 0
-peer:2,send append success, append loop:274, send append to 0
-peer:2,append loop:275
-peer:2,append loop:275
-peer:2,in GoLeaderAppend, append loop:275, send append to 0
-peer:2,send append success, append loop:275, send append to 0
-peer:2,in GoLeaderAppend, append loop:275, send append to 1
-peer:2,send append success, append loop:275, send append to 1
-peer:2,append loop:276
-peer:2,in GoLeaderAppend, append loop:276, send append to 1
-peer:2,send append success, append loop:276, send append to 1
-peer:2 killed
-peer:2, append loop stop
-peer:2, append loop stop
-peer:2 kill sleep over
-peer:2,make
-peer:2,lastRecv:1556216419554
-peer:2,loop:0, now:1556216419554
-peer:2,loop:1, now:1556216419564
-peer:2,loop:2, now:1556216419575
-peer:2,loop:3, now:1556216419586
-peer:2,loop:4, now:1556216419597
-peer:2,loop:5, now:1556216419608
-peer:2,loop:6, now:1556216419619
-peer:2,loop:7, now:1556216419630
-peer:2,loop:8, now:1556216419641
-peer:2,loop:9, now:1556216419652
-peer:2,loop:10, now:1556216419663
-peer:2,loop:11, now:1556216419674
-peer:2,loop:12, now:1556216419684
-peer:2,loop:13, now:1556216419695
-peer:2,loop:14, now:1556216419706
-peer:2,loop:15, now:1556216419717
-peer:2,loop:16, now:1556216419728
-peer:2,loop:17, now:1556216419739
-peer:2,loop:18, now:1556216419750
-peer:2,loop:19, now:1556216419761
-peer:2,loop:20, now:1556216419772
-peer:2,loop:21, now:1556216419783
-peer:2,loop:22, now:1556216419794
-peer:2,loop:23, now:1556216419805
-peer:2,startLeaderElection
-peer:2,lastrecv:1556216419554
-peer:2,now:1556216419805
-peer:2,in startLeaderElection
 peer:2,toserver:1, in GoLeaderElection
-peer:2,toserver:0, in GoLeaderElection
-peer:2,recv voterequest from 1, his term:1, my term:1
-peer:2,case 3
-peer:2,toserver:1, sendRequestVote success
-peer:2,reply:false,1
-peer:2,toserver:0, sendRequestVote success
-peer:2,reply:true,1
+peer:2,toserver:3, in GoLeaderElection
+peer:2,toserver:3, sendRequestVote success
+peer:2,reply:true,6
+peer:2,debug, 2, 2
+peer:2,toserver:4, sendRequestVote success
+peer:2,reply:true,6
 peer:2,become leader
+peer:2,in persist
+peer:2,persist over
+peer:2,debug, 2, 2
 peer:2,start leader loop
-peer:2,append loop:0
-peer:2,in GoLeaderAppend, append loop:0, send append to 1
-peer:2,send append success, append loop:0, send append to 1
-peer:2,append loop:0
-peer:2,in GoLeaderAppend, append loop:0, send append to 0
-peer:2,send append success, append loop:0, send append to 0
-peer:2,append loop:1
-peer:2,in GoLeaderAppend, append loop:1, send append to 0
-peer:2,send append success, append loop:1, send append to 0
-peer:2,append loop:1
-peer:2,in GoLeaderAppend, append loop:1, send append to 1
-peer:2,send append success, append loop:1, send append to 1
-peer:2,append loop:2
-peer:2,in GoLeaderAppend, append loop:2, send append to 0
-peer:2,append loop:2
-peer:2,in GoLeaderAppend, append loop:2, send append to 1
-peer:2,send append success, append loop:2, send append to 1
-peer:2,send append success, append loop:2, send append to 0
-peer:2,append loop:3
-peer:2,in GoLeaderAppend, append loop:3, send append to 0
-peer:2,send append success, append loop:3, send append to 0
-peer:2,append loop:3
-peer:2,in GoLeaderAppend, append loop:3, send append to 1
-peer:2,send append success, append loop:3, send append to 1
-peer:2,append loop:4
-peer:2,in GoLeaderAppend, append loop:4, send append to 1
-peer:2,append loop:4
-peer:2,in GoLeaderAppend, append loop:4, send append to 0
-peer:2,send append success, append loop:4, send append to 0
-peer:2,send append success, append loop:4, send append to 1
-peer:2,append loop:5
-peer:2,in GoLeaderAppend, append loop:5, send append to 1
-peer:2,send append success, append loop:5, send append to 1
-peer:2,append loop:5
-peer:2,in GoLeaderAppend, append loop:5, send append to 0
-peer:2,send append success, append loop:5, send append to 0
-peer:2,append loop:6
-peer:2,in GoLeaderAppend, append loop:6, send append to 0
-peer:2,append loop:6
-peer:2,in GoLeaderAppend, append loop:6, send append to 1
-peer:2,send append success, append loop:6, send append to 0
-peer:2,send append success, append loop:6, send append to 1
-peer:2,append loop:7
-peer:2,in GoLeaderAppend, append loop:7, send append to 1
-peer:2,append loop:7
-peer:2,in GoLeaderAppend, append loop:7, send append to 0
-peer:2,send append success, append loop:7, send append to 1
-peer:2,send append success, append loop:7, send append to 0
-peer:2,append loop:8
-peer:2,in GoLeaderAppend, append loop:8, send append to 1
-peer:2,send append success, append loop:8, send append to 1
-peer:2,append loop:8
-peer:2,in GoLeaderAppend, append loop:8, send append to 0
-peer:2,send append success, append loop:8, send append to 0
-peer:2,append loop:9
-peer:2,in GoLeaderAppend, append loop:9, send append to 0
-peer:2,append loop:9
-peer:2,in GoLeaderAppend, append loop:9, send append to 1
-peer:2,send append success, append loop:9, send append to 0
-peer:2,send append success, append loop:9, send append to 1
-peer:2,append loop:10
-peer:2,in GoLeaderAppend, append loop:10, send append to 0
-peer:2,send append success, append loop:10, send append to 0
-peer:2,append loop:10
-peer:2,in GoLeaderAppend, append loop:10, send append to 1
-peer:2,send append success, append loop:10, send append to 1
-peer:2,append loop:11
-peer:2,in GoLeaderAppend, append loop:11, send append to 0
-peer:2,send append success, append loop:11, send append to 0
-peer:2,append loop:11
-peer:2,in GoLeaderAppend, append loop:11, send append to 1
-peer:2,send append success, append loop:11, send append to 1
-peer:2,append loop:12
-peer:2,in GoLeaderAppend, append loop:12, send append to 0
-peer:2,send append success, append loop:12, send append to 0
-peer:2,append loop:12
-peer:2,in GoLeaderAppend, append loop:12, send append to 1
-peer:2,send append success, append loop:12, send append to 1
-peer:2,append loop:13
-peer:2,in GoLeaderAppend, append loop:13, send append to 0
-peer:2,send append success, append loop:13, send append to 0
-peer:2,append loop:13
-peer:2,in GoLeaderAppend, append loop:13, send append to 1
-peer:2,send append success, append loop:13, send append to 1
-peer:2,append loop:14
-peer:2,in GoLeaderAppend, append loop:14, send append to 0
-peer:2,send append success, append loop:14, send append to 0
-peer:2,append loop:14
-peer:2,in GoLeaderAppend, append loop:14, send append to 1
-peer:2,send append success, append loop:14, send append to 1
-peer:2,append loop:15
-peer:2,in GoLeaderAppend, append loop:15, send append to 1
-peer:2,append loop:15
-peer:2,in GoLeaderAppend, append loop:15, send append to 0
-peer:2,send append success, append loop:15, send append to 0
-peer:2,send append success, append loop:15, send append to 1
-peer:2,append loop:16
-peer:2,append loop:16
-peer:2,in GoLeaderAppend, append loop:16, send append to 0
-peer:2,in GoLeaderAppend, append loop:16, send append to 1
-peer:2,send append success, append loop:16, send append to 0
-peer:2,send append success, append loop:16, send append to 1
-peer:2,append loop:17
-peer:2,in GoLeaderAppend, append loop:17, send append to 0
-peer:2,append loop:17
-peer:2,in GoLeaderAppend, append loop:17, send append to 1
-peer:2,send append success, append loop:17, send append to 0
-peer:2,send append success, append loop:17, send append to 1
-peer:2,append loop:18
-peer:2,in GoLeaderAppend, append loop:18, send append to 1
-peer:2,append loop:18
-peer:2,in GoLeaderAppend, append loop:18, send append to 0
-peer:2,send append success, append loop:18, send append to 1
-peer:2,send append success, append loop:18, send append to 0
-peer:2,append loop:19
-peer:2,in GoLeaderAppend, append loop:19, send append to 0
-peer:2,send append success, append loop:19, send append to 0
-peer:2,append loop:19
-peer:2,in GoLeaderAppend, append loop:19, send append to 1
-peer:2,send append success, append loop:19, send append to 1
-peer:2,append loop:20
-peer:2,in GoLeaderAppend, append loop:20, send append to 1
-peer:2,append loop:20
-peer:2,in GoLeaderAppend, append loop:20, send append to 0
-peer:2,send append success, append loop:20, send append to 1
-peer:2,send append success, append loop:20, send append to 0
-peer:2,append loop:21
-peer:2,in GoLeaderAppend, append loop:21, send append to 0
-peer:2,send append success, append loop:21, send append to 0
-peer:2,append loop:21
-peer:2,in GoLeaderAppend, append loop:21, send append to 1
-peer:2,send append success, append loop:21, send append to 1
-peer:2,append loop:22
-peer:2,in GoLeaderAppend, append loop:22, send append to 0
-peer:2,append loop:22
-peer:2,in GoLeaderAppend, append loop:22, send append to 1
-peer:2,send append success, append loop:22, send append to 0
-peer:2,send append success, append loop:22, send append to 1
-peer:2,append loop:23
-peer:2,in GoLeaderAppend, append loop:23, send append to 0
-peer:2,append loop:23
-peer:2,in GoLeaderAppend, append loop:23, send append to 1
-peer:2,send append success, append loop:23, send append to 0
-peer:2,send append success, append loop:23, send append to 1
-peer:2,append loop:24
-peer:2,in GoLeaderAppend, append loop:24, send append to 1
-peer:2,append loop:24
-peer:2,in GoLeaderAppend, append loop:24, send append to 0
-peer:2,send append success, append loop:24, send append to 1
-peer:2,send append success, append loop:24, send append to 0
-peer:2,append loop:25
-peer:2,in GoLeaderAppend, append loop:25, send append to 0
-peer:2,send append success, append loop:25, send append to 0
-peer:2,append loop:25
-peer:2,in GoLeaderAppend, append loop:25, send append to 1
-peer:2,send append success, append loop:25, send append to 1
-peer:2,append loop:26
-peer:2,in GoLeaderAppend, append loop:26, send append to 0
-peer:2,append loop:26
-peer:2,in GoLeaderAppend, append loop:26, send append to 1
-peer:2,send append failed, append loop:26, send append to 0,retry
-peer:2,send append failed, append loop:26, send append to 1,retry
-peer:2 killed
-peer:2 kill sleep over
+peer:2, start append routine to 4
+peer:2, start to determine 4's nextindex
+peer:2, ready to send to 4
+peer:2, start append routine to 1
+peer:2, start to determine 1's nextindex
+peer:2, ready to send to 1
+peer:2, start append routine to 0
+peer:2, start to determine 0's nextindex
+peer:2, ready to send to 0
+peer:2, start append routine to 3
+peer:2, start to determine 3's nextindex
+peer:2, ready to send to 3
+peer:2,send append success, append loop:0, send append to 4
+peer:2,send append success, append loop:0, send append to 3
+peer:2, start send entry, from 1
+peer:2, ready to send to 3
+peer:2,send append success, append loop:1, send append to 3
+peer:2, start send entry, from 1
+peer:2, ready to send to 4
+peer:2,send append success, append loop:1, send append to 4
+peer:2, start send entry, from 1
+peer:2, ready to send to 3
+peer:2,send append success, append loop:2, send append to 3
+peer:2, start send entry, from 1
+peer:2, ready to send to 4
+peer:2,send append success, append loop:2, send append to 4
+peer:2, start send entry, from 1
+peer:2, ready to send to 4
+peer:2, start send entry, from 1
+peer:2, ready to send to 3
+peer:2,send append success, append loop:3, send append to 3
+peer:2,send append success, append loop:3, send append to 4
+peer:2,send append failed, append loop:0, send append to 0,now:1557231245040,retry
+peer:2, ready to send to 0
+peer:2, start send entry, from 1
+peer:2, ready to send to 4
+peer:2,send append success, append loop:4, send append to 4
+peer:2, start send entry, from 1
+peer:2, ready to send to 3
+peer:2,send append success, append loop:4, send append to 3
+peer:2, start send entry, from 1
+peer:2, ready to send to 4
+peer:2, start send entry, from 1
+peer:2, ready to send to 3
+peer:2,send append success, append loop:5, send append to 4
+peer:2,send append success, append loop:5, send append to 3
+peer:2, start send entry, from 1
+peer:2, ready to send to 3
+peer:2, start send entry, from 1
+peer:2, ready to send to 4
+peer:2,send append success, append loop:6, send append to 3
+peer:2,send append success, append loop:6, send append to 4
+peer:2, start send entry, from 1
+peer:2, ready to send to 3
+peer:2, start send entry, from 1
+peer:2, ready to send to 4
+peer:2,send append success, append loop:7, send append to 3
+peer:2,send append success, append loop:7, send append to 4
+peer:2, start send entry, from 1
+peer:2, ready to send to 3
+peer:2,send append success, append loop:8, send append to 3
+peer:2,log content:50
+peer:2,all log:{0 4 0}:{1 6 50}:
+peer:2,in persist
+peer:2, start send entry, from 1
+peer:2, ready to send to 4
+peer:2,persist over
+peer:2,return:2
+peer:2,send append success, append loop:8, send append to 4
+peer:2, debug:1,2
+peer:2, send args log len:1
+peer:2, start send entry, from 1
+peer:2, ready to send to 3
+peer:2, success send log, incr nextindex, 1, 1
+peer:2,send append success, append loop:9, send append to 3
+peer:2, debug:1,2
+peer:2, send args log len:1
+peer:2, start send entry, from 1
+peer:2, ready to send to 4
+peer:2, success send log, incr nextindex, 1, 1
+peer:2, log commited
+peer:2, reply to tester
+peer:2, refresh commitindex to 1
+peer:2,send append success, append loop:9, send append to 4

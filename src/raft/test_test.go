@@ -210,6 +210,7 @@ loop:
 			continue
 		}
 
+		//此处协调5个routine
 		iters := 5
 		var wg sync.WaitGroup
 		is := make(chan int, iters)
@@ -217,18 +218,18 @@ loop:
 			wg.Add(1)
 			go func(i int) {
 				defer wg.Done()
-				i, term1, ok := cfg.rafts[leader].Start(100 + i)
+				i, term1, ok := cfg.rafts[leader].Start(100 + i) //推了100到104几个值,看起来是随机并发的
 				if term1 != term {
 					return
 				}
 				if ok != true {
 					return
 				}
-				is <- i
+				is <- i //01234推到这个临时管道里了
 			}(ii)
 		}
 
-		wg.Wait()
+		wg.Wait() //我猜这个是等待5个routine都结束
 		close(is)
 
 		for j := 0; j < servers; j++ {
@@ -240,8 +241,9 @@ loop:
 
 		failed := false
 		cmds := []int{}
-		for index := range is {
-			cmd := cfg.wait(index, servers, term)
+		for index := range is { //对于01234这几个值
+			fmt.Printf("testtest:%d\n", index)
+			cmd := cfg.wait(index, servers, term) //取以01234为参数的这几个返回值,组成了cmds
 			if ix, ok := cmd.(int); ok {
 				if ix == -1 {
 					// peers have moved on to later terms
@@ -265,7 +267,7 @@ loop:
 			continue
 		}
 
-		for ii := 0; ii < iters; ii++ {
+		for ii := 0; ii < iters; ii++ { //检查这些值是否是100到104
 			x := 100 + ii
 			ok := false
 			for j := 0; j < len(cmds); j++ {
@@ -334,7 +336,7 @@ func TestBackup2B(t *testing.T) {
 
 	cfg.begin("Test (2B): leader backs up quickly over incorrect follower logs")
 
-	cfg.one(rand.Int(), servers, true)
+	cfg.one(0, servers, true)
 
 	// put leader and one follower in a partition
 	leader1 := cfg.checkOneLeader()
@@ -344,7 +346,7 @@ func TestBackup2B(t *testing.T) {
 
 	// submit lots of commands that won't commit
 	for i := 0; i < 50; i++ {
-		cfg.rafts[leader1].Start(rand.Int())
+		cfg.rafts[leader1].Start(i)
 	}
 
 	time.Sleep(RaftElectionTimeout / 2)
@@ -359,7 +361,7 @@ func TestBackup2B(t *testing.T) {
 
 	// lots of successful commands to new group.
 	for i := 0; i < 50; i++ {
-		cfg.one(rand.Int(), 3, true)
+		cfg.one(50+i, 3, true)
 	}
 
 	// now another partitioned leader and one follower
@@ -372,7 +374,7 @@ func TestBackup2B(t *testing.T) {
 
 	// lots more commands that won't commit
 	for i := 0; i < 50; i++ {
-		cfg.rafts[leader2].Start(rand.Int())
+		cfg.rafts[leader2].Start(100 + i)
 	}
 
 	time.Sleep(RaftElectionTimeout / 2)
@@ -385,16 +387,18 @@ func TestBackup2B(t *testing.T) {
 	cfg.connect((leader1 + 1) % servers)
 	cfg.connect(other)
 
+	fmt.Printf("other:%d\n", other)
+
 	// lots of successful commands to new group.
 	for i := 0; i < 50; i++ {
-		cfg.one(rand.Int(), 3, true)
+		cfg.one(150+i, 3, true)
 	}
 
 	// now everyone
 	for i := 0; i < servers; i++ {
 		cfg.connect(i)
 	}
-	cfg.one(rand.Int(), servers, true)
+	cfg.one(200, servers, true)
 
 	cfg.end()
 }
