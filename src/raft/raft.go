@@ -119,7 +119,8 @@ type Raft struct {
 	NextIndex []int //下一个要给follower发的日志号,初始化为下一个空日志号
 	//MatchIndex      []int //已复制的索引号---有啥用啊,暂时取消
 	Ack             []int //leader发follower日志收到多少回复
-	NextCommitIndex int   //标识我下一个要提交的位置
+	RecvdAck        [][5]bool
+	NextCommitIndex int //标识我下一个要提交的位置
 	//---为了应对情形:刚当上主时有些日志没有提交,但安全性限制让我不能提交,
 	//---需要在最新的日志位置先提交个,这个位置就是NextCommitIndex
 	//------上边两条理由把我搞迷糊了...再看是因为leader会多次接收到同一index的回复,不能重复提交,所以这个变量是递进的
@@ -396,6 +397,7 @@ func (rf *Raft) AppendEntries(args *AppendEntries, reply *AppendEntriesReply) {
 				//此处要设置LastLogIndex
 				if len(args.Entries) > 0 {
 					rf.LastLogIndex = args.Entries[len(args.Entries)-1].Index
+					rf.LastLogTerm = args.Entries[len(args.Entries)-1].Term //这个原来没有,2c最后一个用例跪了
 				}
 
 				rf.persist()
@@ -438,7 +440,7 @@ func (rf *Raft) AppendEntries(args *AppendEntries, reply *AppendEntriesReply) {
 
 			fmt.Printf("peer:%d, recv log:\n", rf.me)
 			for i := 0; i < len(args.Entries); i++ {
-				fmt.Print(reflect.ValueOf(args.Entries[i].Command))
+				fmt.Print(reflect.ValueOf(args.Entries[i]))
 				fmt.Printf(":")
 			}
 			fmt.Printf("\n")
@@ -537,7 +539,7 @@ func (rf *Raft) LeaderCommitLog(startIndex int) {
 	//---此处也要求了,CommitIndex之后的日志是绝不能被快照化的
 	//------关键还是说正常流程上不能批量提交,只能逐个提交,所以多条日志要提交肯定是这种情况
 	if logStartIndex-logOldCommitIndex > 1 {
-		fmt.Printf("peer:%d, leader first time commit:\n", rf.me)
+		fmt.Printf("peer:%d, leader first time commit, old:%d, new:%d\n", rf.me, rf.CommitIndex, startIndex)
 		for i := logOldCommitIndex + 1; i < logStartIndex; i++ {
 			rf.CommitLog(i)
 		}
@@ -593,7 +595,6 @@ func (rf *Raft) getMatchIndexFromLog(index int) int {
 
 	var i int
 	for i = 0; i < len(rf.Log); i++ {
-		//fmt.Printf("peer:%d,logindex:%d, argindex:%d\n", rf.me, rf.Log[i].Index, index)
 		if rf.Log[i].Index == index {
 			break
 		}
@@ -653,15 +654,14 @@ Snap:
 
 		fmt.Printf("peer:%d,to %d, send log index start from:%d, len:%d\n", rf.me, server, startLogIndex, len(args.Entries))
 		for i := 0; i < len(args.Entries); i++ {
-			fmt.Print(reflect.ValueOf(args.Entries[i].Command))
+			fmt.Print(reflect.ValueOf(args.Entries[i]))
 			fmt.Printf(":")
 		}
 		fmt.Printf("\n")
 	}
 
-	//fmt.Printf("peer:%d, leader before send append to %d\n", rf.me, server)
 	ok := rf.sendAppendEntries(server, args, &reply)
-	fmt.Printf("peer:%d, leader append recv from server:%d\n", rf.me, server)
+	fmt.Printf("peer:%d, leader append recv from server:%d, loopround:%d\n", rf.me, server, args.LeaderLoopRound)
 	fmt.Println(reply)
 
 	//收包成功
@@ -677,6 +677,11 @@ Snap:
 				for j := 0; j < len(args.Entries); j++ {
 					fmt.Println(args.Entries[j])
 					//ack长度可得整够了
+					if rf.RecvdAck[args.Entries[j].Index][server] {
+						continue
+					}
+					rf.RecvdAck[args.Entries[j].Index][server] = true
+
 					rf.Ack[args.Entries[j].Index]++
 					fmt.Printf("peer:%d, incr log index:%d, ack:%d\n", rf.me, args.Entries[j].Index, rf.Ack[args.Entries[j].Index])
 					//TestFailNoAgree2B里边测出来,这里会有后边的日志先提交的现象?
@@ -720,7 +725,7 @@ func (rf *Raft) AppendLoop(server int, leaderLoopTimes int) {
 			break
 		}
 
-		rf.AppendToFollower(server, leaderLoopTimes)
+		go rf.AppendToFollower(server, leaderLoopTimes)
 
 		//后边少写个0,造成频繁append每过TestCount
 		//我咋记得是200来着???
@@ -792,7 +797,6 @@ func (rf *Raft) RequestVote(args *RequestVoteArgs, reply *RequestVoteReply) {
 
 	//此处有问题啊...你变成follower之后任期会被拉高的...
 	bLog := rf.CompareLog(args)
-	//fmt.Printf("peer:%d, bLog:%t, votefor:%d\n", rf.me, bLog, rf.VoteFor)
 
 	//跟之前想的不同,同任期的情况下也选它
 	//---同任期只能是挑战者自己增长的,不是隔离自增的话,就是同期大家竞争选主,但这种情况对方votefor是不会为空的,此种情形可忽略
@@ -872,7 +876,6 @@ func (rf *Raft) GoLeaderElection(server int, electionTimes int, args *RequestVot
 			//要查看,中途被搞成主或者变主之后又变成了follower,这个判断还是否有效?---就说说candidate状态也就持续开始的一小段时间,之后就是leader和follower的天下了
 			//因为是并发routine,此时实例状态确实可能已经变成了leader或follower,选举世代也可能有变化
 			rf.mu.Lock()
-			//fmt.Printf("peer:%d,toserver:%d, debug: voteme:%d state:%d argelectiontimes:%d rfelectiontimes:%d\n", rf.me, server, rf.VoteMe[electionTimes], rf.State, electionTimes, rf.ElectionTimes)
 			if rf.VoteMe[electionTimes] >= len(rf.peers)/2+1 && rf.State == 3 && electionTimes == rf.ElectionTimes {
 				rf.mu.Unlock()
 				rf.toLeader()
@@ -950,8 +953,7 @@ func (rf *Raft) startLeaderElection() {
 	}
 
 	//睡一会
-	LoopVoteInterval := 400 + rf.getRand(300)
-	//fmt.Printf("peer:%d,recv over,need election again,need sleep %dms\n", rf.me, LoopVoteInterval)
+	LoopVoteInterval := 500 + rf.getRand(500)
 	fmt.Printf("peer:%d,wait for recv msg,need sleep %dms\n", rf.me, LoopVoteInterval)
 	time.Sleep(time.Duration(LoopVoteInterval * 1000000))
 	fmt.Printf("peer:%d,wake up\n", rf.me)
@@ -992,7 +994,6 @@ func (rf *Raft) Loop() {
 		//state条件是后加的,你在选举状态时是不能再次启动选举的
 		//后边的状态其实不用判断,后边会break,只有是follower状态时才有这个loop
 		if diff > rf.StartVoteInterval && rf.State == 1 {
-			//fmt.Printf("peer:%d,startLeaderElection\n", rf.me)
 			rf.toCandidate()
 			/*
 
@@ -1051,7 +1052,6 @@ func (rf *Raft) PrintLog() {
 //不等提交,立刻返回?
 //start加锁范围要宽些,毕竟可以在外部多线程调用,TestUnreliableAgree2C测出来的
 func (rf *Raft) Start(command interface{}) (int, int, bool) {
-	//fmt.Printf("peer:%d,in start\n", rf.me)
 
 	index := -1
 	term := -1
@@ -1065,7 +1065,6 @@ func (rf *Raft) Start(command interface{}) (int, int, bool) {
 
 	//也可能处于sb候选人状态哦
 	if rf.State != 2 {
-		//fmt.Printf("peer:%d,not leader\n", rf.me)
 		return index, term, isLeader
 	}
 
@@ -1169,10 +1168,11 @@ func Make(peers []*labrpc.ClientEnd, me int,
 	rf.SleepInterval = 200
 	//rf.StartVoteInterval = 300 + rf.getRand(150)
 	//这个值会用在初次选举和之后的本times的超时检测
-	rf.StartVoteInterval = 400 + rf.getRand(300)
+	rf.StartVoteInterval = 500 + rf.getRand(500)
 
 	//文档里说了1s中不能发送超过10次....把代码中与时间有关的地方都做协调性的修改
-	rf.SendAppendInterval = 200
+	//rf.SendAppendInterval = 200
+	rf.SendAppendInterval = 50
 
 	rf.VoteFor = -1
 	//作为candidate时的选举状态,为了处理bug加的
@@ -1186,6 +1186,12 @@ func Make(peers []*labrpc.ClientEnd, me int,
 
 	for i := 0; i < 2000; i++ {
 		rf.Ack = append(rf.Ack, 0)
+
+		var b [5]bool
+		for i := 0; i < 5; i++ {
+			b[i] = false
+		}
+		rf.RecvdAck = append(rf.RecvdAck, b)
 	}
 	rf.NextCommitIndex = 0
 
@@ -1284,6 +1290,10 @@ func (rf *Raft) toLeader() {
 	//这里重置计数是否合适?
 	for i := 0; i < 2000; i++ {
 		rf.Ack[i] = 0
+		for j := 0; j < 5; j++ {
+			rf.RecvdAck[i][j] = false
+		}
+
 	}
 
 	for i := 0; i < len(rf.Log); i++ {
@@ -1331,7 +1341,8 @@ func (rf *Raft) toFollower(term int) {
 	rf.CurrentTerm = term
 	rf.VoteFor = -1
 	rf.persist()
-	rf.StartVoteInterval = 200 + rf.getRand(300)
+	//rf.StartVoteInterval = 200 + rf.getRand(300)
+	rf.StartVoteInterval = 500 + rf.getRand(500)
 }
 
 //这边不要由上边设置界限,直接我自己吧CommitIndex之前的都扔了就完了
