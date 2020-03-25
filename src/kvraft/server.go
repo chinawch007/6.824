@@ -60,11 +60,6 @@ type KVServer struct {
 	// Your definitions here.
 	Table map[string]string
 
-	//LastCommitIndex int
-	//LastCommitTerm  int
-
-	//WaitCommitInterval int
-
 	SnapshotPersister *raft.Persister
 	mapCh             chan bool //当raft收到快照时,回复给server一个消息,server清理map,装载快照
 }
@@ -112,21 +107,11 @@ func (kv *KVServer) processRaft(op Op, err *Err) {
 				DPrintf("kvserver:%d CommandValid:%t, CommandIndex:%d,", kv.me, m.CommandValid, m.CommandIndex)
 				DPrintln(m.Command)
 
-				//第一次接收可能会接收多条,我要一直等直到收到这次这条
-				/*
-					if m.Command.(Op) != op {
-						kv.CommitOp(m.Command.(Op)) //暂时先应用下
-						continue
-					}
-				*/
-
 				//后来条件其实没啥用---会不会出现阻塞延迟,结果每一条消息都延迟一个阶段才来---看测试吧
 				//每条都提价,但返回要看情况
 				//if m.CommandValid && m.CommandIndex > kv.LastCommitIndex {
 				if m.CommandValid {
 					kv.CommitOp(m.Command.(Op))
-					//kv.LastCommitIndex = m.CommandIndex
-					//return
 				} else { //可以用来接收其他的消息
 					DPrintf("kvserver:%d,exception \n", kv.me)
 				}
@@ -148,13 +133,6 @@ func (kv *KVServer) processRaft(op Op, err *Err) {
 				*err = ErrRaftTimeout
 				return
 			}
-			/*
-				default:
-					{
-						DPrintf("kvserver:%d,in default \n", kv.me)
-
-					}
-			*/
 		}
 	}
 
@@ -179,6 +157,19 @@ func (kv *KVServer) Get(args *GetArgs, reply *GetReply) {
 	}
 	reply.WrongLeader = false
 
+	var op Op
+	op.Op = "Get"
+	op.Key = args.Key
+	op.Value = "_"
+
+	//验证连通性,证明主依然在多数机中
+	DPrintf("kvserver:%d before raft, key:%v, ts:%d\n", kv.me, args.Key, args.Ts)
+	kv.processRaft(op, &reply.Err)
+	DPrintf("kvserver:%d after raft, key:%v, ts:%d\n", kv.me, args.Key, args.Ts)
+	if reply.Err != OK {
+		return
+	}
+
 	val, isExist := kv.Table[args.Key]
 	if isExist {
 		reply.Value = val
@@ -189,22 +180,14 @@ func (kv *KVServer) Get(args *GetArgs, reply *GetReply) {
 		DPrintf("kvserver:%d get not exist, key:%v, ts:%d\n", kv.me, args.Key, args.Ts)
 	}
 
-	var op Op
-	op.Op = "Get"
-	op.Key = args.Key
-	op.Value = "_"
-
-	//验证连通性,证明主依然在多数机中
-	DPrintf("kvserver:%d before raft, key:%v, ts:%d\n", kv.me, args.Key, args.Ts)
-	kv.processRaft(op, &reply.Err)
-	DPrintf("kvserver:%d after raft, key:%v, ts:%d\n", kv.me, args.Key, args.Ts)
-
 	//如果始终不返回,那要一直阻塞,这锁也不释放吗...
 	//中间穿插着不是leader又变回来也没啥,是leader就是绝对权威
-	if !kv.isLeader() {
-		reply.WrongLeader = true
-		DPrintf("kvserver:%d get not leader after, key:%v, ts:%d\n", kv.me, args.Key, args.Ts)
-	}
+	/*
+		if !kv.isLeader() {
+			reply.WrongLeader = true
+			DPrintf("kvserver:%d get not leader after, key:%v, ts:%d\n", kv.me, args.Key, args.Ts)
+		}
+	*/
 
 	DPrintf("kvserver:%d get successed, key:%v, value:%v, ts:%d\n", kv.me, args.Key, val, args.Ts)
 }
@@ -225,8 +208,6 @@ func (kv *KVServer) PutAppend(args *PutAppendArgs, reply *PutAppendReply) {
 	}
 	reply.WrongLeader = false
 
-	//reply.TargetIndex = len(kv.rf.Log)
-
 	var op Op
 	op.Op = args.Op
 	op.Key = args.Key
@@ -234,9 +215,17 @@ func (kv *KVServer) PutAppend(args *PutAppendArgs, reply *PutAppendReply) {
 	op.Ts = args.Ts //下层还是比较command,加了这个之后就能区别出其他的请求了
 
 	//有时间戳限定,直接搜索倒是好使
-	if args.Retry && kv.rf.SearchLog(op) {
-		reply.Err = AlreadySuccessed
-		return
+	if args.Retry {
+		if kv.rf.SearchLog(op) == raft.AlreadyCommited {
+			reply.Err = AlreadyCommited
+			return
+		} else if kv.rf.SearchLog(op) == raft.NotCommited {
+			//此条日志在下层的状态还没有确定,将来要么是被覆盖,要么是提交
+			//这种情况下需要让client端到其他机器上继续重试
+			reply.Err = NotCommited
+			return
+		}
+
 	}
 
 	DPrintf("kvserver:%d before raft, key:%v,value:%v\n", kv.me, args.Key, args.Value)
@@ -249,11 +238,13 @@ func (kv *KVServer) PutAppend(args *PutAppendArgs, reply *PutAppendReply) {
 		}
 	*/
 
-	if !kv.isLeader() {
-		DPrintf("kvserver:%d PutAppend not leader after, key:%v\n", kv.me, args.Key)
-		reply.WrongLeader = true
-		return
-	}
+	/*
+		if !kv.isLeader() {
+			DPrintf("kvserver:%d PutAppend not leader after, key:%v\n", kv.me, args.Key)
+			reply.WrongLeader = true
+			return
+		}
+	*/
 
 	DPrintf("kvserver:%d putappend over, key:%v,value:%v, reply msg:", kv.me, args.Key, args.Value)
 	DPrintln(reply)
@@ -281,7 +272,6 @@ func (kv *KVServer) RecvRaftMsgRoutine() {
 				//if m.CommandValid && m.CommandIndex == kv.LastCommitIndex+1 {
 				if m.CommandValid {
 					kv.CommitOp(m.Command.(Op))
-					//kv.LastCommitIndex++
 					//生成快照
 				} else {
 					DPrintf("kvserver:%d raft msg invalid\n", kv.me)
@@ -289,12 +279,6 @@ func (kv *KVServer) RecvRaftMsgRoutine() {
 
 				kv.mu.Unlock()
 			}
-		/*
-			case <-time.After(1 * 1000 * time.Millisecond):
-				{
-					break
-				}
-		*/
 		default:
 			{
 				break
@@ -349,13 +333,13 @@ func StartKVServer(servers []*labrpc.ClientEnd, me int, persister *raft.Persiste
 	kv.rf = raft.Make(servers, me, persister, kv.applyCh, kv.mapCh)
 
 	// You may need initialization code here.
-	//kv.LastCommitIndex = 0
-	//kv.LastCommitTerm = -1
 
 	kv.SnapshotPersister = persister
 	//得加个从快照读状态的步骤
 	kv.makeTableFromSnapshot() //没有快照时persister类会返回错误
-	for i := 0; i < len(kv.rf.Log); i++ {
+	//for i := 0; i < len(kv.rf.Log); i++ {,当然那只能提交到CommitIndex,应该可以想到的
+	indexLimit := kv.rf.GetMatchIndexFromLog(kv.rf.CommitIndex) //有意思,改成大写就能外部引用了
+	for i := 0; i <= indexLimit; i++ {
 		kv.CommitOp(kv.rf.Log[i].Command.(Op))
 	}
 

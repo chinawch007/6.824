@@ -118,7 +118,7 @@ type Raft struct {
 	NextIndex []int //下一个要给follower发的日志号,初始化为下一个空日志号
 	//MatchIndex      []int //已复制的索引号---有啥用啊,暂时取消
 	Ack             []int //leader发follower日志收到多少回复
-	RecvdAck        [][5]bool
+	RecvdAck        [][10]bool
 	NextCommitIndex int //标识我下一个要提交的位置
 	//---为了应对情形:刚当上主时有些日志没有提交,但安全性限制让我不能提交,
 	//---需要在最新的日志位置先提交个,这个位置就是NextCommitIndex
@@ -420,7 +420,7 @@ func (rf *Raft) AppendEntries(args *AppendEntries, reply *AppendEntriesReply) {
 
 			if len(args.Entries) > 0 {
 				//如果上一次发过来的数据我收到,但回包失败,那么此次来的数据可能跟上次到的数据有些重复
-				entry0index := rf.getMatchIndexFromLog(args.Entries[0].Index)
+				entry0index := rf.GetMatchIndexFromLog(args.Entries[0].Index)
 				if entry0index >= 0 && entry0index < len(rf.Log) {
 					rf.Log = rf.Log[0:entry0index]
 				}
@@ -487,9 +487,9 @@ func (rf *Raft) AppendEntries(args *AppendEntries, reply *AppendEntriesReply) {
 					}
 				}
 			*/
-			startCommit = rf.getMatchIndexFromLog(oldCommitIndex) + 1
+			startCommit = rf.GetMatchIndexFromLog(oldCommitIndex) + 1
 		}
-		endCommit = rf.getMatchIndexFromLog(args.LeaderCommit) //leader发过来的index如果在快照中,这个个返回-1,下边直接不执行了
+		endCommit = rf.GetMatchIndexFromLog(args.LeaderCommit) //leader发过来的index如果在快照中,这个个返回-1,下边直接不执行了
 
 		for i := startCommit; i <= endCommit; i++ {
 			rf.CommitLog(i)
@@ -531,8 +531,8 @@ func (rf *Raft) CommitLog(i int) {
 func (rf *Raft) LeaderCommitLog(startIndex int) {
 
 	//因为传进来是有效的,所以这两个值都保证在日志数组索引中
-	logStartIndex := rf.getMatchIndexFromLog(startIndex)
-	logOldCommitIndex := rf.getMatchIndexFromLog(rf.CommitIndex)
+	logStartIndex := rf.GetMatchIndexFromLog(startIndex)
+	logOldCommitIndex := rf.GetMatchIndexFromLog(rf.CommitIndex)
 
 	//加这部分是干啥来着?---对StartWork之前日志做提交,这部分在之前可能没有在多数机器上达成共识
 	//---此处也要求了,CommitIndex之后的日志是绝不能被快照化的
@@ -585,7 +585,7 @@ func (rf *Raft) sendAppendEntries(server int, args *AppendEntries, reply *Append
 //你要想想看,经过第一次rpc的试探,事实上,此时这个index,要么对应日志,要么对应快照
 
 //不搞那么麻烦了,直接在快照中-1,正常正常,超过了就数组长度
-func (rf *Raft) getMatchIndexFromLog(index int) int {
+func (rf *Raft) GetMatchIndexFromLog(index int) int {
 
 	//对应快照的情况,即上次校对后,我这边又生成了快照
 	if index <= rf.SnapshotIndex {
@@ -631,7 +631,7 @@ Snap:
 	} else {
 		args.MsgType = 2
 
-		startLogIndex := rf.getMatchIndexFromLog(rf.NextIndex[server])
+		startLogIndex := rf.GetMatchIndexFromLog(rf.NextIndex[server])
 		DPrintf("peer:%d, to server:%d's nextindex: %d, startindex:%d\n", rf.me, server, rf.NextIndex[server], startLogIndex)
 
 		//follower跟我断连了好久,我这边都已经生成快照了
@@ -648,7 +648,7 @@ Snap:
 			//在新主继任,还没startWork的情况下,也是可以传播并让follower提交一部分日志的
 			//---再看此处时,深感细节精悍
 			//---此处的安全性讨论,CommitIndex确实有可能在快照中,startLogIndex会更小,反着来的话,数组为空
-			args.Entries = rf.Log[startLogIndex : rf.getMatchIndexFromLog(rf.CommitIndex)+1]
+			args.Entries = rf.Log[startLogIndex : rf.GetMatchIndexFromLog(rf.CommitIndex)+1]
 		}
 
 		DPrintf("peer:%d,to %d, send log index start from:%d, len:%d\n", rf.me, server, startLogIndex, len(args.Entries))
@@ -681,6 +681,8 @@ Snap:
 					}
 					rf.RecvdAck[args.Entries[j].Index][server] = true
 
+					rf.mu.Lock() //防止并发提交同一日志,使上报2次
+
 					rf.Ack[args.Entries[j].Index]++
 					DPrintf("peer:%d, incr log index:%d, ack:%d\n", rf.me, args.Entries[j].Index, rf.Ack[args.Entries[j].Index])
 					//TestFailNoAgree2B里边测出来,这里会有后边的日志先提交的现象?
@@ -688,6 +690,8 @@ Snap:
 						args.Entries[j].Index == rf.NextCommitIndex {
 						rf.LeaderCommitLog(args.Entries[j].Index)
 					}
+
+					rf.mu.Unlock() //防止并发提交同一日志,使上报2次
 
 				}
 
@@ -1187,8 +1191,8 @@ func Make(peers []*labrpc.ClientEnd, me int,
 	for i := 0; i < 2000; i++ {
 		rf.Ack = append(rf.Ack, 0)
 
-		var b [5]bool
-		for i := 0; i < 5; i++ {
+		var b [10]bool
+		for i := 0; i < 10; i++ {
 			b[i] = false
 		}
 		rf.RecvdAck = append(rf.RecvdAck, b)
@@ -1290,7 +1294,7 @@ func (rf *Raft) toLeader() {
 	//这里重置计数是否合适?
 	for i := 0; i < 2000; i++ {
 		rf.Ack[i] = 0
-		for j := 0; j < 5; j++ {
+		for j := 0; j < 10; j++ {
 			rf.RecvdAck[i][j] = false
 		}
 
@@ -1385,17 +1389,27 @@ func (rf *Raft) DiscardLog(index int) {
 	rf.persist()
 }
 
+const (
+	NotExist        = "NotExist"
+	NotCommited     = "NotCommited"
+	AlreadyCommited = "AlreadyCommited"
+)
+
 //要是有截断的话这个就完全没法用了...
 //---考虑下截断的情况---并不是把日志全都抹了,要留一点尾巴用于这个查询
-func (rf *Raft) SearchLog(command interface{}) bool {
+func (rf *Raft) SearchLog(command interface{}) string {
 	rf.mu.Lock()
 	defer rf.mu.Unlock()
 
 	for i := len(rf.Log) - 1; i >= 0; i-- {
-		if command == rf.Log[i].Command && rf.CommitIndex >= rf.Log[i].Index { //接口类型直接判等也是醉了
-			return true
+		if command == rf.Log[i].Command {
+			if rf.CommitIndex >= rf.Log[i].Index {
+				return AlreadyCommited
+			} else {
+				return NotCommited
+			}
 		}
 	}
 
-	return false
+	return NotExist
 }

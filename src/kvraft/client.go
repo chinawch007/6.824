@@ -115,10 +115,18 @@ func (ck *Clerk) PutAppend(key string, value string, op string) {
 	args.Retry = false
 	args.Ts = time.Now().UnixNano() / 1000000
 
+	/*
+		var putted []bool
+		for i := 0; i < len(ck.servers); i++ {
+			putted = append(putted, false)
+		}
+	*/
+
 	DPrintf("kvclient:%d put start, key: %v, value:%v, op:%v\n", ck.clientNum, key, value, op)
 
-	//---包括leader正确返回错误重试,要有限度?
+	j := -1
 	for {
+		j++
 		for i := 0; i < len(ck.servers); i++ {
 
 			var reply PutAppendReply
@@ -129,11 +137,26 @@ func (ck *Clerk) PutAppend(key string, value string, op string) {
 					if reply.Err == OK {
 						DPrintf("kvclient:%d put to %d successed, key: %v, value:%v, op:%v\n", ck.clientNum, i, key, value, op)
 						return
-					} else if reply.Err == AlreadySuccessed {
+					} else if reply.Err == AlreadyCommited {
 						DPrintf("kvclient:%d put to %d already successed, key: %v, value:%v, op:%v\n", ck.clientNum, i, key, value, op)
 						return
 					} else if reply.Err == ErrRaftTimeout { //超时也有可能是成功的吧?
 						DPrintf("kvclient:%d put to %d raft timeout, key: %v, value:%v, op:%v\n", ck.clientNum, i, key, value, op)
+						args.Retry = true //这地方要写上啊,不仅是rpc失败的时候
+						//putted[i] = true
+					} else if reply.Err == NotCommited { //继续循环,到其他机器上重试
+						DPrintf("kvclient:%d put to %d log not commited, key: %v, value:%v, op:%v\n", ck.clientNum, i, key, value, op)
+						if j >= 3 { //可能会有下一轮,我每轮提一次
+							ck.PutEmptyLog(i)
+						}
+						/*
+							if putted[i] { //之前推过,你现在还没提交,那你就是被小分区了
+								DPrintf("kvclient:%d has putted to %d, key: %v, value:%v, op:%v\n", ck.clientNum, i, key, value, op)
+							} else { //我这里要连续调用,那会不会出现无限的情况...
+								ck.PutAppend("wang", "chong", "Put")
+								DPrintf("kvclient:%d need startwork to %d, key: %v, value:%v, op:%v\n", ck.clientNum, i, key, value, op)
+							}
+						*/
 					}
 				} else {
 					DPrintf("kvclient:%d put to %d wrong leader, key: %v, value:%v, op:%v\n", ck.clientNum, i, key, value, op)
@@ -143,6 +166,7 @@ func (ck *Clerk) PutAppend(key string, value string, op string) {
 				//多查下倒没啥,当然你也可以直接全部请求都查...
 				DPrintf("kvclient:%d put to %d rpc error, retry, key: %v, value:%v, op:%v\n", ck.clientNum, i, key, value, op)
 				args.Retry = true
+				//putted[i] = true
 			}
 		}
 		DPrintf("kvclient:%d put after a loop not successed, need loop again,sleep awhile key: %v, value:%v, op:%v\n", ck.clientNum, key, value, op)
@@ -150,6 +174,41 @@ func (ck *Clerk) PutAppend(key string, value string, op string) {
 		DPrintf("kvclient:%d put after a loop not successed, wake up,key: %v, value:%v, op:%v\n", ck.clientNum, key, value, op)
 	}
 
+}
+
+func (ck *Clerk) PutEmptyLog(i int) {
+	// You will have to modify this function.
+	var args PutAppendArgs
+
+	args.Key = "wang"
+	args.Value = "chong"
+	args.Op = "Put"
+	args.Retry = false
+	args.Ts = time.Now().UnixNano() / 1000000
+
+	DPrintf("kvclient:%d put start, key: %v, value:%v, op:%v\n", ck.clientNum, args.Key, args.Value, args.Op)
+
+	var reply PutAppendReply
+	ok := ck.servers[i].Call("KVServer.PutAppend", &args, &reply)
+
+	if ok {
+		if !reply.WrongLeader {
+			if reply.Err == OK {
+				DPrintf("kvclient:%d put to %d successed, key: %v, value:%v, op:%v\n", ck.clientNum, i, args.Key, args.Value, args.Op)
+				return
+			} else if reply.Err == ErrRaftTimeout { //超时也有可能是成功的吧?
+				DPrintf("kvclient:%d put to %d raft timeout, key: %v, value:%v, op:%v\n", ck.clientNum, i, args.Key, args.Value, args.Op)
+				args.Retry = true //这里这个参数没啥用了,我只提一次
+			}
+		} else {
+			DPrintf("kvclient:%d put to %d wrong leader, key: %v, value:%v, op:%v\n", ck.clientNum, i, args.Key, args.Value, args.Op)
+		}
+	} else {
+		DPrintf("kvclient:%d put to %d rpc error, retry, key: %v, value:%v, op:%v\n", ck.clientNum, i, args.Key, args.Value, args.Op)
+		args.Retry = true
+	}
+
+	DPrintf("kvclient:%d empty put fail, key: %v, value:%v, op:%v\n", ck.clientNum, args.Key, args.Value, args.Op)
 }
 
 func (ck *Clerk) Put(key string, value string) {
