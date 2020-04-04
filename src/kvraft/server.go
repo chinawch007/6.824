@@ -54,7 +54,8 @@ type KVServer struct {
 	rf      *raft.Raft
 	applyCh chan raft.ApplyMsg
 
-	maxraftstate int // snapshot if log grows this big
+	maxraftstate  int // snapshot if log grows this big
+	snapshotIndex int //
 	//你用什么方式侦测到我的日志超标了,内存结构超字节,你这么厉害?
 
 	// Your definitions here.
@@ -77,7 +78,7 @@ func (kv *KVServer) CommitOp(op Op) {
 		kv.Table[op.Key] += op.Value
 	}
 
-	DPrintf("kvserver:%d commit op:", kv.me)
+	DPrintf("kvserver:%d, commit op:", kv.me)
 	DPrintln(op)
 }
 
@@ -103,8 +104,7 @@ func (kv *KVServer) processRaft(op Op, err *Err) {
 		select {
 		case m = <-kv.applyCh:
 			{
-				//DPrintf("kvserver:%d get the msg from chan, key:%v,value:%v\n", kv.me, args.Key, args.Value)
-				DPrintf("kvserver:%d CommandValid:%t, CommandIndex:%d,", kv.me, m.CommandValid, m.CommandIndex)
+				DPrintf("kvserver:%d, CommandValid:%t, CommandIndex:%d,", kv.me, m.CommandValid, m.CommandIndex)
 				DPrintln(m.Command)
 
 				//后来条件其实没啥用---会不会出现阻塞延迟,结果每一条消息都延迟一个阶段才来---看测试吧
@@ -144,15 +144,13 @@ func (kv *KVServer) processRaft(op Op, err *Err) {
 //---想办法辞职吧...
 func (kv *KVServer) Get(args *GetArgs, reply *GetReply) {
 	// Your code here.
-	DPrintf("kvserver:%d get start key:%v, ts:%d\n", kv.me, args.Key, args.Ts)
-	DPrintf("kvserver:%d before lock, key:%v, ts:%d\n", kv.me, args.Key, args.Ts)
+	DPrintf("kvserver:%d, get start key:%v, ts:%d\n", kv.me, args.Key, args.Ts)
 	kv.mu.Lock()
 	defer kv.mu.Unlock()
-	DPrintf("kvserver:%d after lock, key:%v, ts:%d\n", kv.me, args.Key, args.Ts)
 
 	if !kv.isLeader() {
 		reply.WrongLeader = true
-		DPrintf("kvserver:%d get not leader, return, key:%v, ts:%d\n", kv.me, args.Key, args.Ts)
+		DPrintf("kvserver:%d, get not leader, return, key:%v, ts:%d\n", kv.me, args.Key, args.Ts)
 		return
 	}
 	reply.WrongLeader = false
@@ -161,23 +159,30 @@ func (kv *KVServer) Get(args *GetArgs, reply *GetReply) {
 	op.Op = "Get"
 	op.Key = args.Key
 	op.Value = "_"
+	op.Ts = args.Ts
 
 	//验证连通性,证明主依然在多数机中
-	DPrintf("kvserver:%d before raft, key:%v, ts:%d\n", kv.me, args.Key, args.Ts)
+	//DPrintf("kvserver:%d, before raft, key:%v, ts:%d\n", kv.me, args.Key, args.Ts)
 	kv.processRaft(op, &reply.Err)
-	DPrintf("kvserver:%d after raft, key:%v, ts:%d\n", kv.me, args.Key, args.Ts)
+	//DPrintf("kvserver:%d, after raft, key:%v, ts:%d\n", kv.me, args.Key, args.Ts)
 	if reply.Err != OK {
 		return
+	}
+
+	//这样可能也并不是标准逐条的,因为我可能会一连串提交多条日志
+	if reply.Err == OK && kv.rf.Persister.RaftStateSize() > kv.maxraftstate {
+		DPrintf("kvserver:%d, RaftStateSize larggeer than the limit: %d, %d \n", kv.me, kv.rf.Persister.RaftStateSize(), kv.maxraftstate)
+		kv.makeSnapshot(-1)
 	}
 
 	val, isExist := kv.Table[args.Key]
 	if isExist {
 		reply.Value = val
 		reply.Err = OK
-		DPrintf("kvserver:%d get exist, key:%v, value:%v, ts:%d\n", kv.me, args.Key, val, args.Ts)
+		DPrintf("kvserver:%d, get exist, key:%v, value:%v, ts:%d\n", kv.me, args.Key, val, args.Ts)
 	} else {
 		reply.Err = KeyNotExist
-		DPrintf("kvserver:%d get not exist, key:%v, ts:%d\n", kv.me, args.Key, args.Ts)
+		DPrintf("kvserver:%d, get not exist, key:%v, ts:%d\n", kv.me, args.Key, args.Ts)
 	}
 
 	//如果始终不返回,那要一直阻塞,这锁也不释放吗...
@@ -189,21 +194,21 @@ func (kv *KVServer) Get(args *GetArgs, reply *GetReply) {
 		}
 	*/
 
-	DPrintf("kvserver:%d get successed, key:%v, value:%v, ts:%d\n", kv.me, args.Key, val, args.Ts)
+	DPrintf("kvserver:%d, get successed, key:%v, value:%v, ts:%d\n", kv.me, args.Key, val, args.Ts)
 }
 
 //并发调用,你就当成是多线程调用这个函数
 func (kv *KVServer) PutAppend(args *PutAppendArgs, reply *PutAppendReply) {
 	// Your code here.
 	//DPrintf("kvserver:%d putappend start, key:%v,value:%v\n", kv.me, args.Key, args.Value)
-	DPrintf("kvserver:%d before lock, key:%v,value:%v\n", kv.me, args.Key, args.Value)
+	DPrintf("kvserver:%d, before lock, key:%v,value:%v\n", kv.me, args.Key, args.Value)
 	kv.mu.Lock()
 	defer kv.mu.Unlock()
-	DPrintf("kvserver:%d after lock, key:%v,value:%v\n", kv.me, args.Key, args.Value)
+	DPrintf("kvserver:%d, after lock, key:%v,value:%v\n", kv.me, args.Key, args.Value)
 
 	if !kv.isLeader() {
 		reply.WrongLeader = true
-		DPrintf("kvserver:%d PutAppend not leader, return, key:%v,value:%v\n", kv.me, args.Key, args.Value)
+		DPrintf("kvserver:%d, PutAppend not leader, return, key:%v,value:%v\n", kv.me, args.Key, args.Value)
 		return
 	}
 	reply.WrongLeader = false
@@ -228,15 +233,16 @@ func (kv *KVServer) PutAppend(args *PutAppendArgs, reply *PutAppendReply) {
 
 	}
 
-	DPrintf("kvserver:%d before raft, key:%v,value:%v\n", kv.me, args.Key, args.Value)
+	DPrintf("kvserver:%d, before raft, key:%v,value:%v\n", kv.me, args.Key, args.Value)
 	kv.processRaft(op, &reply.Err)
-	DPrintf("kvserver:%d after raft, key:%v,value:%v\n", kv.me, args.Key, args.Value)
+	DPrintf("kvserver:%d, after raft, key:%v,value:%v\n", kv.me, args.Key, args.Value)
 
-	/*
-		if kv.rf.persister.RaftStateSize() > kv.maxraftstate {
-			kv.makeSnapshot()
-		}
-	*/
+	//可不可能因为raft失败造成日志不能截断而造成日志日志过度积累
+	//---应该不至于,每个client最有一条未提交的日志
+	if reply.Err == OK && kv.rf.Persister.RaftStateSize() > kv.maxraftstate {
+		DPrintf("kvserver:%d, RaftStateSize larggeer than the limit: %d, %d \n", kv.me, kv.rf.Persister.RaftStateSize(), kv.maxraftstate)
+		kv.makeSnapshot(-1)
+	}
 
 	/*
 		if !kv.isLeader() {
@@ -246,7 +252,7 @@ func (kv *KVServer) PutAppend(args *PutAppendArgs, reply *PutAppendReply) {
 		}
 	*/
 
-	DPrintf("kvserver:%d putappend over, key:%v,value:%v, reply msg:", kv.me, args.Key, args.Value)
+	DPrintf("kvserver:%d, putappend over, key:%v,value:%v, reply msg:", kv.me, args.Key, args.Value)
 	DPrintln(reply)
 }
 
@@ -254,17 +260,16 @@ func (kv *KVServer) PutAppend(args *PutAppendArgs, reply *PutAppendReply) {
 //---但还要跟leader的接口有竞争,所以加锁非阻塞模式.
 //------leader是不是可以停掉这个?
 
-//这个基本上只为了follower服务了,leader是不会接收消息引起这个的
-//非阻塞轮询模式
 func (kv *KVServer) RecvRaftMsgRoutine() {
 	for {
 
+	LOOP:
 		var m raft.ApplyMsg
 		select {
 		case m = <-kv.applyCh:
 			{
 				kv.mu.Lock()
-				DPrintf("kvserver:%d follower get msg from raft CommandValid:%t, CommandIndex:%d\n", kv.me, m.CommandValid, m.CommandIndex)
+				DPrintf("kvserver:%d, follower get msg from raft CommandValid:%t, CommandIndex:%d\n", kv.me, m.CommandValid, m.CommandIndex)
 				DPrintln(m)
 
 				//后来条件其实没啥用---会不会出现阻塞延迟,结果每一条消息都延迟一个阶段才来---看测试吧
@@ -273,11 +278,18 @@ func (kv *KVServer) RecvRaftMsgRoutine() {
 				if m.CommandValid {
 					kv.CommitOp(m.Command.(Op))
 					//生成快照
+					kv.rf.MuLock()
+					if kv.rf.Persister.RaftStateSize() > kv.maxraftstate {
+						DPrintf("kvserver:%d, RaftStateSize larggeer than the limit: %d, %d \n", kv.me, kv.rf.Persister.RaftStateSize(), kv.maxraftstate)
+						kv.makeSnapshot(m.CommandIndex) //暂时特殊处理下...防止过分压到了raft更新的CommitIndex
+					}
+					kv.rf.MuUnlock()
 				} else {
-					DPrintf("kvserver:%d raft msg invalid\n", kv.me)
+					DPrintf("kvserver:%d, raft msg invalid\n", kv.me)
 				}
 
 				kv.mu.Unlock()
+				goto LOOP //因为是缓冲chan,如果这条之后还有,继续抽
 			}
 		default:
 			{
@@ -286,7 +298,7 @@ func (kv *KVServer) RecvRaftMsgRoutine() {
 
 		}
 
-		time.Sleep(time.Duration(200 * 1000000))
+		time.Sleep(time.Duration(50 * 1000000))
 	}
 }
 
@@ -315,6 +327,7 @@ func (kv *KVServer) Kill() {
 // StartKVServer() must return quickly, so it should start goroutines
 // for any long-running work.
 //
+//这个persister是tester传进来的,所以它可以用这个来测量持久化数据大小
 func StartKVServer(servers []*labrpc.ClientEnd, me int, persister *raft.Persister, maxraftstate int) *KVServer {
 	// call labgob.Register on structures you want
 	// Go's RPC library to marshall/unmarshall.
@@ -327,8 +340,10 @@ func StartKVServer(servers []*labrpc.ClientEnd, me int, persister *raft.Persiste
 
 	// You may need initialization code here.
 
-	//这边要搞成一个有缓冲的chan,这样raft那边推就不会阻塞了---什么时候加的缓冲...
-	kv.applyCh = make(chan raft.ApplyMsg, 100)
+	//这边要搞成一个有缓冲的chan,这样raft那边推就不会阻塞了
+	//
+	//kv.applyCh = make(chan raft.ApplyMsg, 100)
+	kv.applyCh = make(chan raft.ApplyMsg)
 	kv.mapCh = make(chan bool)
 	kv.rf = raft.Make(servers, me, persister, kv.applyCh, kv.mapCh)
 
@@ -345,8 +360,9 @@ func StartKVServer(servers []*labrpc.ClientEnd, me int, persister *raft.Persiste
 
 	//专门为了raft接收到
 	go kv.RecvRaftMsgRoutine()
+	go kv.RecvSanpshotRoutine()
 
-	DPrintf("kvserver:%dstart over\n", kv.me)
+	DPrintf("kvserver:%d, start over\n", kv.me)
 
 	return kv
 }
@@ -357,12 +373,22 @@ func StartKVServer(servers []*labrpc.ClientEnd, me int, persister *raft.Persiste
 //------你之前竟然真的这么写,也是醉了
 //为保证各机器的快照进度一致,要在每次应用到map之后进行检测,看是否需要压快照
 //---此刻要确定,raft要清理的日志的上限是哪里?---外边传进来吧
-func (kv *KVServer) makeSnapshot(index int) {
-	kv.mu.Lock()
-	defer kv.mu.Unlock()
+//现在的3处调用都是外部持有锁的
+func (kv *KVServer) makeSnapshot(targetIndex int) {
 
 	//这地方不加raft的锁没啥事,大不了跟那边差几条日志---这地方要统一修正下,看看,跟所有机器的快照进度规范化有关
+	//你一定要保证,这里是下层raft刚刚提交完日志才进的这个函数,保证这个index是有效的
 	//index := len(kv.rf.Log) - 1
+	//主调这个无论如何都是安全的
+	var index int
+	if targetIndex == -1 {
+		index = kv.rf.GetMatchIndexFromLog(kv.rf.CommitIndex) //提交到哪压到哪,别全压
+	} else {
+		index = kv.rf.GetMatchIndexFromLog(targetIndex)
+	}
+
+	DPrintf("kvserver:%d, debug: %d, %d\n", kv.me, index, kv.rf.CommitIndex)
+	//你这个写法其实主从的日志截断位置是不一致的
 
 	w := new(bytes.Buffer)
 	e := labgob.NewEncoder(w)
@@ -386,7 +412,7 @@ func (kv *KVServer) makeTableFromSnapshot() {
 	data := kv.SnapshotPersister.ReadSnapshot()
 
 	if data == nil || len(data) < 1 { // bootstrap without any state?
-		DPrintf("kvserver:%d snapshot size error\n", kv.me)
+		DPrintf("kvserver:%d, snapshot size error\n", kv.me)
 		return
 	}
 
@@ -401,7 +427,7 @@ func (kv *KVServer) makeTableFromSnapshot() {
 		d.Decode(&term) != nil ||
 		d.Decode(&table) != nil { //这个table直接这么搞也不知道好不好使
 
-		DPrintf("kvserver:%d makeTableFromSnapshot failed\n", kv.me)
+		DPrintf("kvserver:%d, makeTableFromSnapshot failed\n", kv.me)
 	} else {
 		kv.Table = table
 	}
@@ -409,12 +435,18 @@ func (kv *KVServer) makeTableFromSnapshot() {
 
 //raft接收到快照后
 //---我要的功能是这个routine一直阻塞,直到raft发来消息
+//这个问题是这样,这个触发效果一定要是非常立即的,决不能被阻塞,不然的话并行操作map会有问题
+//所以这地方的危险在于,作为follower,主发来的快照和日志一起来的话,先后顺序没法保证
+//所以像文档里说的,搞成一个通道吧
+//这个当然只有msgtype=1时才会调用
+//---如果limit设置的太小会出现刚载入完这个,接收日志的部分也生成快照
 func (kv *KVServer) RecvSanpshotRoutine() {
 	for {
 		//会一直阻塞
 		_ = <-kv.mapCh
-		DPrintf("kvserver:%d get snapshot msg from raft\n", kv.me)
+		DPrintf("kvserver:%d, get snapshot msg from raft\n", kv.me)
 
+		//每接到一次就装载一次吗?
 		kv.makeTableFromSnapshot()
 	}
 }

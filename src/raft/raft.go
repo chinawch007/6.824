@@ -75,10 +75,11 @@ type LogItem struct {
 type Raft struct {
 	mu        sync.Mutex          // Lock to protect shared access to this peer's state
 	peers     []*labrpc.ClientEnd // RPC end points of all peers
-	persister *Persister          // Object to hold this peer's persisted state
-	me        int                 // this peer's index into peers[]
-	ApplyCh   chan ApplyMsg       //后边这个是定语--按照要求,follower也要给回复
-	Stop      bool
+	Persister *Persister          // Object to hold this peer's persisted state
+	//为了给上层server调用,特意要改成大写的
+	me      int           // this peer's index into peers[]
+	ApplyCh chan ApplyMsg //后边这个是定语--按照要求,follower也要给回复
+	Stop    bool
 
 	State         int //follower1 leader2 candidate3
 	Log           []LogItem
@@ -160,7 +161,8 @@ func (rf *Raft) GetState() (int, bool) {
 // see paper's Figure 2 for a description of what should be persistent.
 //
 //给的例子是增量还是全量---因为内容不多,都不用增量,都是直接全量哈
-//机器重启也是用的mak吗?
+//机器重启也是用的make吗?
+//这地方要加锁啊...但他是被调的,别死锁了
 func (rf *Raft) persist() {
 	// Your code here (2C).
 	// Example:
@@ -175,7 +177,7 @@ func (rf *Raft) persist() {
 	e.Encode(rf.LastLogIndex)
 	e.Encode(rf.LastLogTerm)
 	data := w.Bytes()
-	rf.persister.SaveRaftState(data)
+	rf.Persister.SaveRaftState(data)
 
 	//DPrintf("peer:%d,persist over\n", rf.me)
 }
@@ -206,7 +208,7 @@ func (rf *Raft) readPersist(data []byte) {
 		d.Decode(&LastLogIndex) != nil ||
 		d.Decode(&LastLogTerm) != nil {
 		//error...
-		DPrintf("peer:%d restore failed\n", rf.me)
+		DPrintf("peer:%d, restore failed\n", rf.me)
 	} else {
 		rf.CurrentTerm = CurrentTerm
 		rf.Log = Log
@@ -343,6 +345,7 @@ func (rf *Raft) getNextIndex(recvLog []LogItem) int {
 //followerer处理appendentries的handler
 func (rf *Raft) AppendEntries(args *AppendEntries, reply *AppendEntriesReply) {
 	DPrintf("peer:%d,recv append from %d,AppendLoopRound:%d\n", rf.me, args.LeaderId, args.LeaderLoopRound)
+	recvSnapshot := false
 
 	if args.Term < rf.CurrentTerm {
 		reply.Success = false
@@ -368,16 +371,21 @@ func (rf *Raft) AppendEntries(args *AppendEntries, reply *AppendEntriesReply) {
 		//---------不行的,leader那边要做每条日志的确认统计,所以正常发送必须要从CommitIndex开始
 		if args.MsgType == 1 {
 			//目标是要确定CommitIndex下一个位置
-			reply.NextIndex = rf.getNextIndex(args.Entries)
+			//reply.NextIndex = rf.getNextIndex(args.Entries)
 
 			//这地方又要强调一个点,只有commit的日志才能压快照,不能收到就压
 			//是要比一下吗?看一下上报的方式
 			//---快照隐含着你要提交的进度会增多,得包含快照
+			rf.mu.Lock()                                                         //这个地方是为了跟follower的server层的切片判断互斥
 			if len(args.Snapshot) > 0 && args.SnapshotIndex > rf.SnapshotIndex { //发快照的情形---直接无条件按照leader的快照赋值,还是做下比较?
 				//暂时先不考虑follower的快照比leader多的恐怖情形...
-				rf.persister.SaveStateAndSnapshot(nil, args.Snapshot)
+				rf.Persister.SaveStateAndSnapshot(nil, args.Snapshot)
 				//rf.Log = rf.Log[0:0] //这步骤跟快照上报有关系吗
-				rf.MapCh <- true
+				rf.MapCh <- true //看看这里是不是堵住了
+				recvSnapshot = true
+				rf.SnapshotIndex = args.SnapshotIndex //此处也要更新,不只是截断日志的部分
+				DPrintf("peer:%d, refresh snapshotindex to %d\n", rf.me, rf.SnapshotIndex)
+				//这边是这样,在msgType=1的情况下会比后边的载入日志会早些
 
 				rf.Log = args.Entries //要么包含CommitIndex或者快照包含它
 
@@ -387,38 +395,39 @@ func (rf *Raft) AppendEntries(args *AppendEntries, reply *AppendEntriesReply) {
 					rf.LastLogIndex = args.SnapshotIndex
 				}
 
+				DPrintf("peer:%d, recv log:\n", rf.me)
+				for i := 0; i < len(args.Entries); i++ {
+					DPrint(reflect.ValueOf(args.Entries[i]))
+					DPrintf(":")
+				}
+				DPrintf("\n")
+
+				rf.PrintLog()
+
 				rf.persist()
 			} else {
 				//这个地方是考虑日志后段部分可能有不匹配的地方
 				//在初次探测的步骤中,在还没有StartWork的情况下,最新部分日志是不能强制覆盖的
-				//rf.Log = rf.Log[:reply.NextIndex]
 				rf.Log = args.Entries
-				//此处要设置LastLogIndex
 				if len(args.Entries) > 0 {
 					rf.LastLogIndex = args.Entries[len(args.Entries)-1].Index
 					rf.LastLogTerm = args.Entries[len(args.Entries)-1].Term //这个原来没有,2c最后一个用例跪了
 				}
 
 				rf.persist()
-				DPrintf("peer:%d, my nextindex is %d\n", rf.me, reply.NextIndex)
 			}
+			rf.mu.Unlock()
+
+			//目标是要确定CommitIndex下一个位置
+			//之前在前边,但看下需要在SanpshotIndex赋值后
+			reply.NextIndex = rf.getNextIndex(args.Entries)
+			DPrintf("peer:%d, my nextindex is %d\n", rf.me, reply.NextIndex)
 
 		} else { //经过上边的校对,这部分应该只是追加的情形了
 			//这样也涵盖了没有日志空心跳的情形
-			/*
-				for i := 0; i < len(args.Entries); i++ {
-					//可能是追加也可能是覆盖---都已经截断了就不会出现覆盖的情况了
-					if args.Entries[i].Index >= len(rf.Log) {
-						rf.Log = append(rf.Log, args.Entries[i])
-					} else {
-						rf.Log[args.Entries[i].Index] = args.Entries[i]
-					}
-
-
-				}
-			*/
 
 			if len(args.Entries) > 0 {
+				rf.mu.Lock() //跟上边并列下,主要是为了与后边提交中生成快照的部分互斥
 				//如果上一次发过来的数据我收到,但回包失败,那么此次来的数据可能跟上次到的数据有些重复
 				entry0index := rf.GetMatchIndexFromLog(args.Entries[0].Index)
 				if entry0index >= 0 && entry0index < len(rf.Log) {
@@ -433,6 +442,7 @@ func (rf *Raft) AppendEntries(args *AppendEntries, reply *AppendEntriesReply) {
 				rf.LastLogIndex = rf.Log[len(rf.Log)-1].Index
 				rf.LastLogTerm = rf.Log[len(rf.Log)-1].Term
 				rf.persist()
+				rf.mu.Unlock()
 			}
 
 			reply.NextIndex = rf.LastLogIndex + 1
@@ -447,52 +457,50 @@ func (rf *Raft) AppendEntries(args *AppendEntries, reply *AppendEntriesReply) {
 			rf.PrintLog()
 		}
 
-		//必须先有NextIndex才能确定CommitIndex
 		//NextIndex必然大于CommitIndex
 		//---第一次探测NextIndex时这个部分其实是不执行的
 		//------会存在一种什么情况说:我之前上报到某个位置,但包含后来的一些日志的快照把这部分都覆盖了,我的上报就没有连续性了
 		//---------上报的一部分含义在于是server的table装载日志,但快照部分确实就不需要装载了
 		oldCommitIndex := rf.CommitIndex
-		/*
-			if args.LeaderCommit > rf.CommitIndex {
-				if len(rf.Log)-1 < args.LeaderCommit {
-					//能确定此时我所有的日志都是该提交的?
-					rf.CommitIndex = len(rf.Log) - 1
-				} else {
-					rf.CommitIndex = args.LeaderCommit
-				}
-				DPrintf("peer:%d, refresh commitindex from %d to %d\n", rf.me, oldCommitIndex, rf.CommitIndex)
-			}
-		*/
-		rf.CommitIndex = args.LeaderCommit
+		rf.CommitIndex = args.LeaderCommit //这里是CommitIndex唯一的递进方式吗?
+		DPrintf("peer:%d, refresh commitindex from %d to %d\n", rf.me, oldCommitIndex, args.LeaderCommit)
 
 		//上边是确定此次更新提交的范围,下边是上报提交
 		//---允许截断之后逻辑都变了,要先确定当前的提交位置在哪里,然后提交点更新到主的进度
-		var startCommit int
-		var endCommit int
 
 		//if args.SnapshotIndex > rf.SnapshotIndex {
-		if oldCommitIndex == rf.SnapshotIndex {
-			//此种情况下是否CommitIndex绝对会碾压
-			//所以说能产生快照,要立即产生快照
-			//
-			startCommit = 0 //从接收的日志的初始位置开始
+		/*
+			if oldCommitIndex == rf.SnapshotIndex {
+				//此种情况下是否CommitIndex绝对会碾压
+				//所以说能产生快照,要立即产生快照
+				//
+				startCommit = 0 //从接收的日志的初始位置开始
+			} else {
+				startCommit = rf.GetMatchIndexFromLog(oldCommitIndex) + 1
+			}
+		*/
+		/*
+				startCommit := rf.GetMatchIndexFromLog(oldCommitIndex) + 1
+				endCommit := rf.GetMatchIndexFromLog(args.LeaderCommit) //leader发过来的index如果在快照中,这个个返回-1,下边直接不执行了
 
-		} else {
-			/*
-				for i := 0; i < len(rf.Log); i++ {
-					if rf.Log[i].Index == oldCommitIndex {
-						startCommit = i + 1
-						break
-					}
+			for i := startCommit; i <= endCommit; i++ {
+				rf.CommitLog(i)
+			}
+		*/
+
+		//这里的假设当然是做连续性的提交啦...
+		//---不连续提交当然也只会在follower身上出现
+		//------server层对提交的连续性有要求吗?
+		if recvSnapshot { //载入快照的没有提交的那部分就不做提交了
+			if len(rf.Log) > 0 {
+				for i := rf.SnapshotIndex + 1; i <= args.LeaderCommit; i++ {
+					rf.CommitLog(rf.GetMatchIndexFromLog(i)) //可以确定都在日志里?
 				}
-			*/
-			startCommit = rf.GetMatchIndexFromLog(oldCommitIndex) + 1
-		}
-		endCommit = rf.GetMatchIndexFromLog(args.LeaderCommit) //leader发过来的index如果在快照中,这个个返回-1,下边直接不执行了
-
-		for i := startCommit; i <= endCommit; i++ {
-			rf.CommitLog(i)
+			}
+		} else {
+			for i := oldCommitIndex + 1; i <= args.LeaderCommit; i++ {
+				rf.CommitLog(rf.GetMatchIndexFromLog(i)) //可以确定都在日志里?
+			}
 		}
 
 	} else { //对方的任期号比我大
@@ -514,18 +522,15 @@ func (rf *Raft) CommitLog(i int) {
 	var msg ApplyMsg
 	msg.Command = rf.Log[i].Command
 	msg.CommandValid = true
-	msg.CommandIndex = rf.Log[i].Index + 1 //兼容哈
+	//msg.CommandIndex = rf.Log[i].Index + 1 //兼容哈
+	msg.CommandIndex = rf.Log[i].Index
 
 	rf.ApplyCh <- msg
 
-	DPrintf("peer:%d, log commited,content:\n", rf.me)
-	DPrintln(rf.Log[i].Command)
-
-	DPrintf("peer:%d, reply to tester,content:\n", rf.me)
+	DPrintf("peer:%d, reply to tester,commit content:\n", rf.me)
 	DPrintln(msg)
 }
 
-//这部分是由leader对达成共识的条目进行提交,不需要考虑快照
 //---即不会出现我的CommitIndex在快照中的情况
 //------无论是自己生成的快照还是别人传过来的,都肯定都有较大的CommitIndex伴随着
 func (rf *Raft) LeaderCommitLog(startIndex int) {
@@ -539,16 +544,23 @@ func (rf *Raft) LeaderCommitLog(startIndex int) {
 	//------关键还是说正常流程上不能批量提交,只能逐个提交,所以多条日志要提交肯定是这种情况
 	if logStartIndex-logOldCommitIndex > 1 {
 		DPrintf("peer:%d, leader first time commit, old:%d, new:%d\n", rf.me, rf.CommitIndex, startIndex)
-		for i := logOldCommitIndex + 1; i < logStartIndex; i++ {
-			rf.CommitLog(i)
+		/*
+			for i := logOldCommitIndex + 1; i < logStartIndex; i++ {
+				rf.CommitLog(i)
+			}
+		*/
+		for i := rf.CommitIndex + 1; i < startIndex; i++ {
+			rf.CommitLog(rf.GetMatchIndexFromLog(i))
 		}
 	}
 
 	//一直到日志的末尾?全部?
 	//---会出现批量提交的情况吗?注意下
-	for i := logStartIndex; i < len(rf.Log); i++ {
-
-		if rf.Ack[i] <= len(rf.peers)/2 {
+	//for i := logStartIndex; i < len(rf.Log); i++ {
+	for j := startIndex; j <= rf.Log[len(rf.Log)-1].Index; j++ { //就差个等号
+		i := rf.GetMatchIndexFromLog(j)
+		//if rf.Ack[i] <= len(rf.peers)/2 { //大哥,你可能是第一次遇到这个问题了,截断之后的ack使用,看来是之前的改动没有改彻底
+		if rf.Ack[rf.Log[i].Index] <= len(rf.peers)/2 {
 			break
 		}
 
@@ -593,7 +605,7 @@ func (rf *Raft) GetMatchIndexFromLog(index int) int {
 	}
 
 	var i int
-	for i = 0; i < len(rf.Log); i++ {
+	for i = 0; i < len(rf.Log); i++ { //代码这么写是有bug的,空日志返回0了
 		if rf.Log[i].Index == index {
 			break
 		}
@@ -610,9 +622,8 @@ func (rf *Raft) AppendToFollower(server int, leaderLoopTimes int) {
 	args := &argsEntity
 	args.Term = rf.CurrentTerm
 	args.LeaderId = rf.me
-	//明显有的节点会卡住在某round
 	args.LeaderLoopRound = rf.AppendLoopRound[server]
-	args.LeaderCommit = rf.CommitIndex
+	//args.LeaderCommit = rf.CommitIndex
 
 	DPrintf("peer:%d,in AppendToFollower, append loop round:%d, send append to %d\n", rf.me, args.LeaderLoopRound, server)
 
@@ -621,16 +632,23 @@ func (rf *Raft) AppendToFollower(server int, leaderLoopTimes int) {
 Snap:
 
 	//加入快照之后这个应该是全局的索引了,不再是当前的log数组中的索引了
+	//---这里的append也需要有正常入msgtype=2的功能,因为有可能会出现平时发快照的情形
 	if rf.NextIndex[server] == -1 { //默认值是-1,确定follower的具体进度,全量发快照和日志,一次性搞定
 		DPrintf("peer:%d, send all log to determine %d's nextindex\n", rf.me, server)
 		args.MsgType = 1
 
+		rf.mu.Lock() //出现了leaderCommitIndex和SanpshotIndex不一致的现象,所以吧前者赋值拿进来,并加个锁
 		args.Entries = rf.Log
 		//args.Entries = rf.Log[:rf.getMatchIndexFromLog(rf.CommitIndex)+1]
-		args.Snapshot = rf.persister.ReadSnapshot()
+		args.Snapshot = rf.Persister.ReadSnapshot()
+		args.SnapshotIndex = rf.SnapshotIndex //这语句你一直都没写...
+		args.LeaderCommit = rf.CommitIndex
+		rf.mu.Unlock()
 	} else {
 		args.MsgType = 2
 
+		rf.mu.Lock()
+		args.LeaderCommit = rf.CommitIndex
 		startLogIndex := rf.GetMatchIndexFromLog(rf.NextIndex[server])
 		DPrintf("peer:%d, to server:%d's nextindex: %d, startindex:%d\n", rf.me, server, rf.NextIndex[server], startLogIndex)
 
@@ -638,6 +656,7 @@ Snap:
 		//---可得保证这种情况下返回的是-1
 		if startLogIndex == -1 {
 			rf.NextIndex[server] = -1
+			rf.mu.Unlock()
 			goto Snap
 		}
 
@@ -650,6 +669,8 @@ Snap:
 			//---此处的安全性讨论,CommitIndex确实有可能在快照中,startLogIndex会更小,反着来的话,数组为空
 			args.Entries = rf.Log[startLogIndex : rf.GetMatchIndexFromLog(rf.CommitIndex)+1]
 		}
+		//此处加锁的目的在于把startLogIndex和entries的赋值原子化
+		rf.mu.Unlock()
 
 		DPrintf("peer:%d,to %d, send log index start from:%d, len:%d\n", rf.me, server, startLogIndex, len(args.Entries))
 		for i := 0; i < len(args.Entries); i++ {
@@ -1089,7 +1110,8 @@ func (rf *Raft) Start(command interface{}) (int, int, bool) {
 
 	rf.Log = append(rf.Log, item) //append定期检查的时候查看是否需要发送部分日志---是不是得看看这个操作有没有用
 	rf.persist()
-	index = rf.LastLogIndex + 1
+	//index = rf.LastLogIndex + 1
+	index = rf.LastLogIndex
 	rf.Ack[rf.LastLogIndex]++ //原来没放到锁范围里,推测会有并发bug
 	rf.mu.Unlock()
 
@@ -1117,7 +1139,7 @@ func (rf *Raft) Start(command interface{}) (int, int, bool) {
 //
 func (rf *Raft) Kill() {
 	// Your code here, if desired.
-	DPrintf("peer:%d killed\n", rf.me)
+	DPrintf("peer:%d, killed\n", rf.me)
 
 	//follower状态下main loop停掉,leader状态下append loop停掉,candidate状态下直接杀了吧
 	rf.Stop = true
@@ -1126,7 +1148,7 @@ func (rf *Raft) Kill() {
 
 	time.Sleep(time.Duration(10 * 1000000)) //少睡会
 	nowMs := time.Now().UnixNano() / 1000000
-	DPrintf("peer:%d kill sleep over,now:%d\n", rf.me, nowMs)
+	DPrintf("peer:%d, kill sleep over,now:%d\n", rf.me, nowMs)
 
 }
 
@@ -1149,7 +1171,7 @@ func Make(peers []*labrpc.ClientEnd, me int,
 
 	rf := &Raft{}
 	rf.peers = peers
-	rf.persister = persister
+	rf.Persister = persister
 	// initialize from state persisted before a crash
 	rf.me = me
 	rf.ApplyCh = applyCh
@@ -1349,43 +1371,48 @@ func (rf *Raft) toFollower(term int) {
 	rf.StartVoteInterval = 500 + rf.getRand(500)
 }
 
-//这边不要由上边设置界限,直接我自己吧CommitIndex之前的都扔了就完了
-//这边抛弃日志跟选举,追加是异步并列的\
-//---再看下具体所需功能???
+//这边抛弃日志跟选举,追加是异步并列的
+//当前这个index的意义是日志数组中的索引
 func (rf *Raft) DiscardLog(index int) {
-	rf.mu.Lock()
-	defer rf.mu.Unlock()
+	//rf.mu.Lock()
+	//defer rf.mu.Unlock()
+	//follower调用时由外部加锁,leader调用时,因为有server锁,所以不会有并发操作rf.Log的问题
+	DPrintf("peer:%d,delete log smaller than %d included\n", rf.me, index)
+	//rf.Log = rf.Log[:index+1]你这写的啥玩意,你知不知道你这写的是什么意思?
+	//这么写会不会越界
+	rf.SnapshotIndex = rf.Log[index].Index //也是后加的,之前没改彻底
+	rf.Log = rf.Log[index+1:]
 
-	//你这么截断,日志号没法维护了...---积累历史清楚索引长度
-	//rf.Log = rf.Log[:index+1]
-
-	if index > rf.LastLogIndex {
-		rf.Log = rf.Log[0:0]
-	}
-
-	if len(rf.Log) > 0 {
-		if index < rf.Log[0].Index {
-			return
-		}
-
-		if index > rf.Log[len(rf.Log)-1].Term {
-			rf.Log = rf.Log[0:0]
-			return
-		}
-
-		var ClearIndex int
-
-		for i := 0; i < len(rf.Log); i++ {
-			if index == rf.Log[i].Index {
-				ClearIndex = i
+	/*
+			if index > rf.LastLogIndex {
+				rf.Log = rf.Log[0:0]
 			}
+
+
+		if len(rf.Log) > 0 {
+			if index < rf.Log[0].Index {
+				return
+			}
+
+			if index > rf.Log[len(rf.Log)-1].Term {
+				rf.Log = rf.Log[0:0]
+				return
+			}
+
+			var ClearIndex int
+
+			for i := 0; i < len(rf.Log); i++ {
+				if index == rf.Log[i].Index {
+					ClearIndex = i
+				}
+			}
+
+			rf.Log = rf.Log[ClearIndex:+1]
+		} else { //没有日志就不用截断了
+			return
 		}
 
-		rf.Log = rf.Log[ClearIndex:+1]
-	} else { //没有日志就不用截断了
-		return
-	}
-
+	*/
 	rf.persist()
 }
 
@@ -1412,4 +1439,12 @@ func (rf *Raft) SearchLog(command interface{}) string {
 	}
 
 	return NotExist
+}
+
+func (rf *Raft) MuLock() {
+	rf.mu.Lock()
+}
+
+func (rf *Raft) MuUnlock() {
+	rf.mu.Unlock()
 }
