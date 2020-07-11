@@ -42,8 +42,8 @@ type Op struct {
 
 	TransShards []int                     //用于trans,执行时删除掉相应shard
 	Table       map[int]map[string]string //用于pull,执行时加入到总库
-	Configs     []shardmaster.Config      //每次配置变更必有的扩散
-	Config      shardmaster.Config
+	//Configs     []shardmaster.Config      //每次配置变更必有的扩散
+	Config shardmaster.Config
 	//---相应的配置修改应该都已经在query中做完了?
 	//------没做,一起做吧
 	//---------follower需不需要最新
@@ -97,31 +97,20 @@ func (kv *ShardKV) CommitOp(op Op) {
 		kv.opTs = append(kv.opTs, op.Ts)
 		fmt.Printf("shardserver:%v ,append %v result:%v\n", kv.logHead, op.Value, kv.Table[op.Shard][op.Key])
 	} else if op.Op == "TransShard" { //类似于get,不需要做什么了
-
+		for _, v := range op.TransShards {
+			delete(kv.Table, v)
+		}
 	} else if op.Op == "RefreshConfig" { //暂时不删数据,先把主体过了
-		/*
-			if len(op.Configs) > 0 {
-				oldNum := len(kv.configs) - 1
-				newNum := len(op.Configs) - 1
-
-				for i := oldNum + 1; i < newNum; i++ {
-					kv.valid = append(kv.valid, false)
-				}
-				kv.valid = append(kv.valid, true)
-
-				//fmt.Printf("shardserver:%v valid:\n", kv.logHead)
-				//DPrintln(kv.valid)
-			}
-		*/
-		//kv.configs = op.Configs
-		kv.configs = append(kv.configs, op.Config)
+		//kv.configs = append(kv.configs, op.Config)
 		kv.configNow = op.Config
 
-		for i, v := range kv.configs {
-			if i > 0 && v.Num != kv.configs[i-1].Num+1 {
-				fmt.Printf("shardserver:%v configs not continue\n", kv.logHead)
+		/*
+			for i, v := range kv.configs {
+				if i > 0 && v.Num != kv.configs[i-1].Num+1 {
+					fmt.Printf("shardserver:%v configs not continue\n", kv.logHead)
+				}
 			}
-		}
+		*/
 
 		for k1, v1 := range op.Table { //table为空就不做操作了
 			//kv.Table[k1] = v1
@@ -410,55 +399,17 @@ func (kv *ShardKV) PutEmptyLog(serverName string) {
 //
 func (kv *ShardKV) Kill() {
 	kv.rf.Kill()
+
+	DPrintf("shardserver:%v final kv:\n", kv.logHead)
+
+	for k, v := range kv.Table {
+		DPrintf("shardserver:%v shard:%d:", kv.logHead, k)
+		DPrintln(v)
+	}
+
 	kv.Stop = true
 	// Your code here, if desired.
 }
-
-/*
-func (kv *ShardKV) persistServerState() {
-	// Your code here (2C).
-	// Example:
-	//DPrintf(rf.logHead,"peer:%d,in persist\n", rf.me)
-
-	w := new(bytes.Buffer)
-	e := labgob.NewEncoder(w)
-	e.Encode(kv.configs)
-	e.Encode(kv.valid)
-	e.Encode(kv.configInit)
-	data := w.Bytes()
-	kv.SnapshotPersister.SaveServerState(data)
-
-	//DPrintf(rf.logHead,"peer:%d,persist over\n", rf.me)
-}
-
-//
-// restore previously persisted state.
-//
-func (kv *ShardKV) readPersistServerState(data []byte) {
-	if data == nil || len(data) < 1 { // bootstrap without any state?
-		return
-	}
-	// Your code here (2C).
-	// Example:
-	r := bytes.NewBuffer(data)
-	d := labgob.NewDecoder(r)
-	var configs []shardmaster.Config
-	var valid []bool
-	var configInit bool
-
-	//压码解码是按特定顺序的吗?---类型?
-	if d.Decode(&configs) != nil ||
-		d.Decode(&valid) != nil ||
-		d.Decode(&configInit) != nil {
-		//error...
-		DPrintf("shardserver:%v, restore failed\n", kv.logHead)
-	} else {
-		kv.configs = configs
-		kv.valid = valid
-		kv.configInit = configInit
-	}
-}
-*/
 
 //
 // servers[] contains the ports of the servers in this group.
@@ -578,7 +529,7 @@ func (kv *ShardKV) makeSnapshot(targetIndex int) {
 	e.Encode(kv.rf.Log[index].Index)
 	e.Encode(kv.rf.Log[index].Term)
 	e.Encode(kv.Table)
-	e.Encode(kv.configs)
+	//e.Encode(kv.configs)
 	//e.Encode(kv.valid) //其实是跟configs同步的,可以用日志生成的
 	e.Encode(kv.configNow)
 	e.Encode(kv.configInit) //上边都是跟日志相关的,你这个跟日志不相关啊
@@ -609,7 +560,7 @@ func (kv *ShardKV) makeTableFromSnapshot() {
 	var index int //这俩没用上吗?
 	var term int
 	var table map[int]map[string]string
-	var configs []shardmaster.Config
+	//var configs []shardmaster.Config
 	//var valid []bool
 	var configNow shardmaster.Config
 	var configInit bool
@@ -617,7 +568,7 @@ func (kv *ShardKV) makeTableFromSnapshot() {
 	if d.Decode(&index) != nil ||
 		d.Decode(&term) != nil ||
 		d.Decode(&table) != nil ||
-		d.Decode(&configs) != nil ||
+		//d.Decode(&configs) != nil ||
 		//d.Decode(&valid) != nil ||
 		d.Decode(&configNow) != nil ||
 		d.Decode(&configInit) != nil { //这个table直接这么搞也不知道好不好使
@@ -625,7 +576,7 @@ func (kv *ShardKV) makeTableFromSnapshot() {
 		DPrintf("shardserver:%v, makeTableFromSnapshot failed\n", kv.logHead)
 	} else {
 		kv.Table = table
-		kv.configs = configs
+		//kv.configs = configs
 		//kv.valid = valid
 		kv.configNow = configNow
 		kv.configInit = configInit
@@ -702,10 +653,29 @@ func (kv *ShardKV) TransShard(args *TransShardArgs, reply *TransShardReply) {
 		return
 	}
 
+	//raft操作会删掉转移的shard,提前
+	reply.Table = make(map[int]map[string]string)
+	//reply.ConfigNum = make(map[int]int)
+	for _, v := range args.Shards {
+		reply.Table[v] = make(map[string]string) //要是一直没碰到有效的,就保持为空吧
+
+		for k2, v2 := range kv.Table[v] {
+			reply.Table[v][k2] = v2
+		}
+
+		//删除
+		//delete(kv.Table, v)
+
+	}
+
 	//类似于get,判断连通性
 	var op Op
 	op.Ts = args.Ts
 	op.Op = "TransShard"
+	//op.TransShards = args.Shards
+	for _, v := range args.Shards {
+		op.TransShards = append(op.TransShards, v)
+	}
 
 	fmt.Printf("shardserver:%v in transshard before raft\n", kv.logHead)
 	kv.processRaft(op, &reply.Err)
@@ -723,38 +693,6 @@ func (kv *ShardKV) TransShard(args *TransShardArgs, reply *TransShardReply) {
 		fmt.Println(kv.valid)
 		fmt.Println(kv.configs)
 	*/
-
-	reply.Table = make(map[int]map[string]string)
-	//reply.ConfigNum = make(map[int]int)
-	for _, v := range args.Shards {
-		reply.Table[v] = make(map[string]string) //要是一直没碰到有效的,就保持为空吧
-
-		/*	//此处是一级一级跳时留下的痕迹
-			if kv.configNow.Shards[v] != kv.gid {
-				fmt.Printf("shardserver:%v meet error shardid meet:%d\n", kv.logHead, v)
-				reply.Err = "ErrorShardid"
-				return
-			}
-		*/
-
-		for k2, v2 := range kv.Table[v] {
-			reply.Table[v][k2] = v2
-		}
-		//reply.Table[v] = kv.Table[v]
-
-		/*
-			if len(kv.valid) > 0 {
-				for i := len(kv.valid) - 1; i >= 0; i-- {
-					if kv.valid[i] && kv.configs[i].Shards[v] == kv.gid { //轮询配置,找到最新的负责这个shard的配置
-						reply.Table[v] = kv.Table[v]
-						//reply.ConfigNum[v] = i
-						break
-					}
-				}
-			}
-		*/
-
-	}
 
 	DPrintf("shardserver:%v, transshard over, reply msg:", kv.logHead)
 	DPrintln(reply)
@@ -840,46 +778,12 @@ func (kv *ShardKV) pullShardRpc(groups map[int][]string, gid int, shards []int, 
 }
 
 //目的是拿到一个shrad为key的小table
-//func (kv *ShardKV) pullShard(gidShard map[int][]int) map[int]map[string]string {
-//func (kv *ShardKV) pullShard(groups map[int][]string, shardsPull []int) map[int]map[string]string {
 func (kv *ShardKV) pullShard(groups map[int][]string, gidShard map[int][]int) map[int]map[string]string {
 	fmt.Printf("shardserver:%v pullshard start", kv.logHead)
 	fmt.Println(gidShard)
 
-	//gidChan := make(map[int]chan map[int]map[string]string)
 	gidChan := make(map[int]chan ChanStruct)
 	shardData := make(map[int]map[string]string) //做最终返回的
-	//shardNum := make(map[int]int)                //记录每个shard的版本
-	//gidShard := make(map[int][]int)
-	//---这东西你怎么保证准确呢?是数组最后的配置即时最新的吗?
-
-	/*
-		for k, v1 := range gidShard {
-			gidChan[k] = make(chan map[int]map[string]string)
-			//gidData[k] = make(map[string]string)搞混了,key是shard啊,怎么弄成gid了
-			for _, shard := range v1 {
-				gidData[shard] = make(map[string]string)
-			}
-		}
-	*/
-
-	/*
-			for k, v := range gidShard { //我拉去前不会知道你的每个group具体负责哪些shard
-				go kv.pullShardRpc(k, v, gidChan[k])
-			}
-
-
-		for _, i := range shardsPull {
-			shardNum[i] = 0
-
-			if len(kv.configs) > 0 {
-				if kv.configs[len(kv.configs)-1].Shards[i] == kv.gid {
-					shardNum[i] = len(kv.configs)
-				}
-			}
-		}
-
-	*/
 
 	for k, _ := range gidShard {
 		if len(gidShard[k]) > 0 {
@@ -898,14 +802,6 @@ func (kv *ShardKV) pullShard(groups map[int][]string, gidShard map[int][]int) ma
 		tmp := <-v
 		for k2, v2 := range tmp.table {
 			shardData[k2] = v2
-
-			/*
-				if tmp.configNum[k2] > shardNum[k2] {
-					shardNum[k2] = tmp.configNum[k2]
-					shardData[k2] = v2
-				}
-			*/
-
 		}
 	}
 
@@ -916,6 +812,7 @@ func (kv *ShardKV) pullShard(groups map[int][]string, gidShard map[int][]int) ma
 }
 
 //历史配置中所有的group配置,有些group退出后就不在新配置中了,但仍要去查询
+//---测试里每次变化都是增或删一台机器,就新旧2条配置就够了,不用全量
 func (kv *ShardKV) makeGroups(configs []shardmaster.Config) map[int][]string {
 	ret := make(map[int][]string)
 
@@ -929,130 +826,6 @@ func (kv *ShardKV) makeGroups(configs []shardmaster.Config) map[int][]string {
 
 	return ret
 }
-
-/*
-//每次收到请求时拉配置
-//要特殊处理下第一次的拉配置
-func (kv *ShardKV) QueryConfig() {
-
-	if !kv.isLeader() {
-		return
-	}
-
-	//延时加大可怎么办啊
-	cs := kv.smClient.QueryAll()
-	DPrintf("shardserver:%v, query all config:", kv.logHead) //看看不行注释掉吧
-	DPrintln(cs)
-
-	if len(cs) == len(kv.configs) { //配置结构体不能直接判等
-		DPrintf("shardserver:%v, config not change,\n", kv.logHead)
-		time.Sleep(time.Duration(1000000000))
-		return
-	}
-	DPrintf("shardserver:%v, meet new config\n", kv.logHead)
-
-	shardData := make(map[int]map[string]string)
-
-	//没初始化没有新旧配置对比
-	//---初始状态下我需要去拉去配置,但此时应该没有数据,不用考虑数据的迁移
-	//------注意初始无配置情况下请求到来的处理
-	//---------因为上边的拦截,这个初始状态,拉到的会是真正的初始配置
-	//------------只扩散配置,不扩散数据
-	//这两种情况op.table怎么处理
-	if len(cs) == 1 { //初始拉了空配置
-		DPrintf("shardserver:%v, default empty config\n", kv.logHead)
-		return
-	} else if !kv.configInit { //初始配置要不要拉数据是分情况的
-		kv.configInit = true
-		//kv.persistServerState()
-		DPrintf("shardserver:%v, first config\n", kv.logHead)
-
-		newNum := len(cs) - 1
-
-		//如果需要向别的group迁移数据则迁之
-		var shardsPull []int
-
-		//分别拿出新旧配置的本群负责的shard
-		for i, v := range cs[newNum].Shards {
-			if v == kv.gid {
-				shardsPull = append(shardsPull, i)
-			}
-		}
-
-		DPrintf("shardserver:%v, after compute, shardspull:", kv.logHead)
-		DPrintln(shardsPull)
-
-		groups := kv.makeGroups(cs)
-		DPrintf("shardserver:%v, groups:", kv.logHead)
-		DPrintln(groups)
-		if len(shardsPull) > 0 {
-			shardData = kv.pullShard(groups, shardsPull)
-		}
-
-	} else {
-		oldNum := len(kv.configs) - 1
-		newNum := len(cs) - 1
-
-		//如果需要向别的group迁移数据则迁之
-		shard1 := make(map[int]bool)
-		shard2 := make(map[int]bool)
-		var shardsPull []int
-
-		//分别拿出新旧配置的本群负责的shard
-		for i, v := range kv.configs[oldNum].Shards {
-			if v == kv.gid {
-				shard1[i] = true
-			}
-		}
-		for i, v := range cs[newNum].Shards {
-			if v == kv.gid {
-				shard2[i] = true
-			}
-		}
-
-		//旧配置和新配置之间可能有其他group负责这些shard
-		for k1, _ := range shard2 { //轮询map,k是shardid
-			//_, ok := shard1[k1]
-			//if !ok { //新配置中有旧配置中没有,就是说之前不由我这个group负责,现在由我负责
-			shardsPull = append(shardsPull, k1)
-			//}
-		}
-
-		if kv.Stop == true { //遇到过集群停了routine没停的情况
-			//得保证stop后有一段时间缓冲,有时间消除这些routine
-			fmt.Printf("shardserver:%v QueryConfig stop\n", kv.logHead)
-			return
-		}
-
-		DPrintf("shardserver:%v, after compute, shardspull:", kv.logHead)
-		DPrintln(shardsPull)
-
-		groups := kv.makeGroups(cs)
-		if len(shardsPull) > 0 {
-			shardData = kv.pullShard(groups, shardsPull)
-		}
-	}
-
-	//这边先处理数据,再raft,因为需要在raft日志中写入需要扩散到follower的数据
-	var op Op
-	op.Op = "RefreshConfig"
-	op.Ts = time.Now().UnixNano() / 1000000
-	op.Configs = cs
-	op.Table = shardData
-
-	DPrintf("shardserver:%v, in query before raft\n", kv.logHead)
-	var err Err
-	//因为外边加锁了所以上边操作和这里写日志的顺序无所谓了?
-	kv.processRaft(op, &err)
-	DPrintf("shardserver:%v, in query after raft before makesnapshot\n", kv.logHead)
-
-	if err == OK && kv.rf.Persister.RaftStateSize() > kv.maxraftstate {
-		DPrintf("shardserver:%v, RaftStateSize larggeer than the limit: %d, %d \n", kv.logHead, kv.rf.Persister.RaftStateSize(), kv.maxraftstate)
-		kv.makeSnapshot(-1)
-	}
-	DPrintf("shardserver:%v, in query after makesnapshot\n", kv.logHead)
-}
-*/
 
 //还没加锁,注意加下锁
 //你所说的配置阶梯上升问题在于,有可能出现一个group持有一个很旧的配置,去取下一num配置取不到的问题
@@ -1126,7 +899,12 @@ func (kv *ShardKV) QueryConfigRoutine() {
 			DPrintf("shardserver:%v, after compute, gidshards:", kv.logHead)
 			DPrintln(gidShard)
 
-			groups := kv.makeGroups(kv.configs)
+			var configs []shardmaster.Config
+			configs = append(configs, kv.configNow)
+			configs = append(configs, c)
+
+			//groups := kv.makeGroups(kv.configs)
+			groups := kv.makeGroups(configs)
 			if len(gidShard) > 0 {
 				shardData = kv.pullShard(groups, gidShard)
 			}
