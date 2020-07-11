@@ -67,6 +67,7 @@ type LogItem struct {
 	Index   int
 	Term    int
 	Command interface{}
+	Ts      int64
 }
 
 //
@@ -135,11 +136,14 @@ type Raft struct {
 	AppendLoopRound [10]int
 
 	MapCh chan bool
+
+	logHead string
 }
 
 //这里似乎是测量标准
 // return currentTerm and whether this server
 // believes it is the leader.
+//严格讲这地方是要加锁的
 func (rf *Raft) GetState() (int, bool) {
 
 	var term int
@@ -166,7 +170,7 @@ func (rf *Raft) GetState() (int, bool) {
 func (rf *Raft) persist() {
 	// Your code here (2C).
 	// Example:
-	//DPrintf("peer:%d,in persist\n", rf.me)
+	//DPrintf(rf.logHead,"peer:%d,in persist\n", rf.me)
 
 	w := new(bytes.Buffer)
 	e := labgob.NewEncoder(w)
@@ -176,10 +180,11 @@ func (rf *Raft) persist() {
 	e.Encode(rf.CommitIndex)
 	e.Encode(rf.LastLogIndex)
 	e.Encode(rf.LastLogTerm)
+	e.Encode(rf.SnapshotIndex)
 	data := w.Bytes()
 	rf.Persister.SaveRaftState(data)
 
-	//DPrintf("peer:%d,persist over\n", rf.me)
+	//DPrintf(rf.logHead,"peer:%d,persist over\n", rf.me)
 }
 
 //Persister传过来的只是一堆字节数组
@@ -200,15 +205,17 @@ func (rf *Raft) readPersist(data []byte) {
 	var CommitIndex int
 	var LastLogIndex int
 	var LastLogTerm int
+	var SnapshotIndex int
 	//压码解码是按特定顺序的吗?---类型?
 	if d.Decode(&CurrentTerm) != nil ||
 		d.Decode(&Log) != nil ||
 		d.Decode(&VoteFor) != nil ||
 		d.Decode(&CommitIndex) != nil ||
 		d.Decode(&LastLogIndex) != nil ||
-		d.Decode(&LastLogTerm) != nil {
+		d.Decode(&LastLogTerm) != nil ||
+		d.Decode(&SnapshotIndex) != nil {
 		//error...
-		DPrintf("peer:%d, restore failed\n", rf.me)
+		DPrintf(rf.logHead, "peer:%d, restore failed\n", rf.me)
 	} else {
 		rf.CurrentTerm = CurrentTerm
 		rf.Log = Log
@@ -216,6 +223,7 @@ func (rf *Raft) readPersist(data []byte) {
 		rf.CommitIndex = CommitIndex
 		rf.LastLogIndex = LastLogIndex
 		rf.LastLogTerm = LastLogTerm
+		rf.SnapshotIndex = SnapshotIndex
 	}
 }
 
@@ -229,6 +237,8 @@ type RequestVoteArgs struct {
 	Term         int //我要选的任期
 	LastLogIndex int //最后收到?持久化的日志号
 	LastLogTerm  int //最后日志任期
+	CommitIndex  int //在前2者相同的情况下,用这个比
+	//出现过主提交,但没及时发给从,死机重选的问题
 }
 
 //
@@ -344,13 +354,14 @@ func (rf *Raft) getNextIndex(recvLog []LogItem) int {
 
 //followerer处理appendentries的handler
 func (rf *Raft) AppendEntries(args *AppendEntries, reply *AppendEntriesReply) {
-	DPrintf("peer:%d,recv append from %d,AppendLoopRound:%d\n", rf.me, args.LeaderId, args.LeaderLoopRound)
+	DPrintf(rf.logHead, "peer:%d,recv append from %d,AppendLoopRound:%d\n", rf.me, args.LeaderId, args.LeaderLoopRound)
+	DPrintln(*args)
 	recvSnapshot := false
 
 	if args.Term < rf.CurrentTerm {
 		reply.Success = false
 		reply.Term = rf.CurrentTerm
-		DPrintf("peer:%d,refuse append from %d,AppendLoopRound:%d, his term: %d,my term:%d\n", rf.me, args.LeaderId, args.LeaderLoopRound, args.Term, rf.CurrentTerm)
+		DPrintf(rf.logHead, "peer:%d,refuse append from %d,AppendLoopRound:%d, his term: %d,my term:%d\n", rf.me, args.LeaderId, args.LeaderLoopRound, args.Term, rf.CurrentTerm)
 	} else if args.Term == rf.CurrentTerm { //这地方同选举的地方有点混淆,这个判断需要看日志吗?
 		reply.Success = true
 		//在任期相等的情况下,也要成为follower---如果收到另一个leader的同等任期append,难道也要变么?---在成员数目确定的情况下,不会出现两台机器同一任期的leader
@@ -360,7 +371,7 @@ func (rf *Raft) AppendEntries(args *AppendEntries, reply *AppendEntriesReply) {
 			rf.toFollower(args.Term)
 		} else if rf.State == 1 {
 			rf.mu.Unlock()
-			DPrintf("peer:%d,refresh lastrecvtime\n", rf.me)
+			DPrintf(rf.logHead, "peer:%d,refresh lastrecvtime\n", rf.me)
 			rf.LastRecvAppendMs = time.Now().UnixNano() / 1000000
 		}
 
@@ -376,31 +387,57 @@ func (rf *Raft) AppendEntries(args *AppendEntries, reply *AppendEntriesReply) {
 			//这地方又要强调一个点,只有commit的日志才能压快照,不能收到就压
 			//是要比一下吗?看一下上报的方式
 			//---快照隐含着你要提交的进度会增多,得包含快照
-			rf.mu.Lock()                                                         //这个地方是为了跟follower的server层的切片判断互斥
-			if len(args.Snapshot) > 0 && args.SnapshotIndex > rf.SnapshotIndex { //发快照的情形---直接无条件按照leader的快照赋值,还是做下比较?
+			rf.mu.Lock() //这个地方是为了跟follower的server层的切片判断互斥
+
+			//与这种情况类似,在CommitIndex我比主大的情况,但不需要在日志添加阶段做特殊处理
+			if args.SnapshotIndex < rf.SnapshotIndex {
+
+				var startIndex int
+				for i, v := range args.Entries { //经过推理论证,这种情况下,传过来的日志必然包含这条已经被我快照化的日志
+					if v.Index == rf.SnapshotIndex {
+						startIndex = i
+					}
+				}
+				//只要日志的后半截
+				rf.Log = args.Entries[startIndex+1 : len(args.Entries)]
+				DPrintf(rf.logHead, "peer:%d,special startIndex:%d\n", rf.me, args.Entries[startIndex].Index)
+				rf.PrintLog()
+
+				if len(args.Entries) > 0 {
+					rf.LastLogIndex = args.Entries[len(args.Entries)-1].Index
+					rf.LastLogTerm = args.Entries[len(args.Entries)-1].Term //这个原来没有,2c最后一个用例跪了
+				}
+
+				rf.persist()
+			} else if len(args.Snapshot) > 0 && args.SnapshotIndex > rf.SnapshotIndex { //发快照的情形---直接无条件按照leader的快照赋值,还是做下比较?
+
 				//暂时先不考虑follower的快照比leader多的恐怖情形...
 				rf.Persister.SaveStateAndSnapshot(nil, args.Snapshot)
 				//rf.Log = rf.Log[0:0] //这步骤跟快照上报有关系吗
 				rf.MapCh <- true //看看这里是不是堵住了
 				recvSnapshot = true
 				rf.SnapshotIndex = args.SnapshotIndex //此处也要更新,不只是截断日志的部分
-				DPrintf("peer:%d, refresh snapshotindex to %d\n", rf.me, rf.SnapshotIndex)
+				DPrintf(rf.logHead, "peer:%d, refresh snapshotindex to %d\n", rf.me, rf.SnapshotIndex)
 				//这边是这样,在msgType=1的情况下会比后边的载入日志会早些
 
 				rf.Log = args.Entries //要么包含CommitIndex或者快照包含它
 
 				if len(args.Entries) > 0 {
 					rf.LastLogIndex = args.Entries[len(args.Entries)-1].Index
+					rf.LastLogTerm = args.Entries[len(args.Entries)-1].Term
 				} else {
 					rf.LastLogIndex = args.SnapshotIndex
+					//lastTerm怎么设置
+					//---此处问题还没遇到过bug
+					//------得让主传过来
 				}
 
-				DPrintf("peer:%d, recv log:\n", rf.me)
+				DPrintf(rf.logHead, "peer:%d, recv log:\n", rf.me)
 				for i := 0; i < len(args.Entries); i++ {
 					DPrint(reflect.ValueOf(args.Entries[i]))
-					DPrintf(":")
+					DPrintf(rf.logHead, ":")
 				}
-				DPrintf("\n")
+				DPrintf(rf.logHead, "\n")
 
 				rf.PrintLog()
 
@@ -409,6 +446,7 @@ func (rf *Raft) AppendEntries(args *AppendEntries, reply *AppendEntriesReply) {
 				//这个地方是考虑日志后段部分可能有不匹配的地方
 				//在初次探测的步骤中,在还没有StartWork的情况下,最新部分日志是不能强制覆盖的
 				rf.Log = args.Entries
+				//这些东西需要单独拿出来处理吗?直接放函数最后处理不行吗
 				if len(args.Entries) > 0 {
 					rf.LastLogIndex = args.Entries[len(args.Entries)-1].Index
 					rf.LastLogTerm = args.Entries[len(args.Entries)-1].Term //这个原来没有,2c最后一个用例跪了
@@ -421,7 +459,7 @@ func (rf *Raft) AppendEntries(args *AppendEntries, reply *AppendEntriesReply) {
 			//目标是要确定CommitIndex下一个位置
 			//之前在前边,但看下需要在SanpshotIndex赋值后
 			reply.NextIndex = rf.getNextIndex(args.Entries)
-			DPrintf("peer:%d, my nextindex is %d\n", rf.me, reply.NextIndex)
+			DPrintf(rf.logHead, "peer:%d, my nextindex is %d\n", rf.me, reply.NextIndex)
 
 		} else { //经过上边的校对,这部分应该只是追加的情形了
 			//这样也涵盖了没有日志空心跳的情形
@@ -447,12 +485,12 @@ func (rf *Raft) AppendEntries(args *AppendEntries, reply *AppendEntriesReply) {
 
 			reply.NextIndex = rf.LastLogIndex + 1
 
-			DPrintf("peer:%d, recv log:\n", rf.me)
+			DPrintf(rf.logHead, "peer:%d, recv log:\n", rf.me)
 			for i := 0; i < len(args.Entries); i++ {
 				DPrint(reflect.ValueOf(args.Entries[i]))
-				DPrintf(":")
+				DPrintf(rf.logHead, ":")
 			}
-			DPrintf("\n")
+			DPrintf(rf.logHead, "\n")
 
 			rf.PrintLog()
 		}
@@ -462,8 +500,12 @@ func (rf *Raft) AppendEntries(args *AppendEntries, reply *AppendEntriesReply) {
 		//------会存在一种什么情况说:我之前上报到某个位置,但包含后来的一些日志的快照把这部分都覆盖了,我的上报就没有连续性了
 		//---------上报的一部分含义在于是server的table装载日志,但快照部分确实就不需要装载了
 		oldCommitIndex := rf.CommitIndex
-		rf.CommitIndex = args.LeaderCommit //这里是CommitIndex唯一的递进方式吗?
-		DPrintf("peer:%d, refresh commitindex from %d to %d\n", rf.me, oldCommitIndex, args.LeaderCommit)
+		//rf.CommitIndex = args.LeaderCommit //这里是CommitIndex唯一的递进方式吗?
+		//极端情况,之前是主仅仅自己提交了,然后死机,别人当主了
+		if args.LeaderCommit > rf.CommitIndex {
+			rf.CommitIndex = args.LeaderCommit
+		}
+		DPrintf(rf.logHead, "peer:%d, refresh commitindex from %d to %d\n", rf.me, oldCommitIndex, args.LeaderCommit)
 
 		//上边是确定此次更新提交的范围,下边是上报提交
 		//---允许截断之后逻辑都变了,要先确定当前的提交位置在哪里,然后提交点更新到主的进度
@@ -492,7 +534,7 @@ func (rf *Raft) AppendEntries(args *AppendEntries, reply *AppendEntriesReply) {
 		//---不连续提交当然也只会在follower身上出现
 		//------server层对提交的连续性有要求吗?
 		if recvSnapshot { //载入快照的没有提交的那部分就不做提交了
-			if len(rf.Log) > 0 {
+			if len(rf.Log) > 0 { //考虑下接收主快照但是我的commitIndex比主大的情况
 				for i := rf.SnapshotIndex + 1; i <= args.LeaderCommit; i++ {
 					rf.CommitLog(rf.GetMatchIndexFromLog(i)) //可以确定都在日志里?
 				}
@@ -503,16 +545,18 @@ func (rf *Raft) AppendEntries(args *AppendEntries, reply *AppendEntriesReply) {
 			}
 		}
 
+		rf.persist() //lab4反应的,要记录下CommitIndex的更新
+
 	} else { //对方的任期号比我大
 		//我的loop会重启吗?
 		rf.toFollower(args.Term)
-		DPrintf("peer:%d, recv big term append from %d, %d, %d \n", rf.me, args.LeaderId, rf.CurrentTerm, args.Term)
+		DPrintf(rf.logHead, "peer:%d, recv big term append from %d, %d, %d \n", rf.me, args.LeaderId, rf.CurrentTerm, args.Term)
 
 		//跟上边有段重复的代码
 		//---问题是,你给我发的这条append,是有效的还是某条过期的无效的
 		if args.MsgType == 1 { //探测阶段
 			reply.NextIndex = rf.getNextIndex(args.Entries)
-			DPrintf("peer:%d, meet big term, my nextindex is %d\n", rf.me, reply.NextIndex)
+			DPrintf(rf.logHead, "peer:%d, meet big term, my nextindex is %d\n", rf.me, reply.NextIndex)
 		}
 	}
 
@@ -525,9 +569,9 @@ func (rf *Raft) CommitLog(i int) {
 	//msg.CommandIndex = rf.Log[i].Index + 1 //兼容哈
 	msg.CommandIndex = rf.Log[i].Index
 
-	rf.ApplyCh <- msg
+	rf.ApplyCh <- msg //看日志下条日志之前上层server就把日志放进快照了
 
-	DPrintf("peer:%d, reply to tester,commit content:\n", rf.me)
+	DPrintf(rf.logHead, "peer:%d, reply to tester,commit content:\n", rf.me)
 	DPrintln(msg)
 }
 
@@ -543,13 +587,14 @@ func (rf *Raft) LeaderCommitLog(startIndex int) {
 	//---此处也要求了,CommitIndex之后的日志是绝不能被快照化的
 	//------关键还是说正常流程上不能批量提交,只能逐个提交,所以多条日志要提交肯定是这种情况
 	if logStartIndex-logOldCommitIndex > 1 {
-		DPrintf("peer:%d, leader first time commit, old:%d, new:%d\n", rf.me, rf.CommitIndex, startIndex)
+		DPrintf(rf.logHead, "peer:%d, leader first time commit, old:%d, new:%d\n", rf.me, rf.CommitIndex, startIndex)
 		/*
 			for i := logOldCommitIndex + 1; i < logStartIndex; i++ {
 				rf.CommitLog(i)
 			}
 		*/
 		for i := rf.CommitIndex + 1; i < startIndex; i++ {
+			//这里没有做CommitIndex,NextCommitIndex的操作,注意下
 			rf.CommitLog(rf.GetMatchIndexFromLog(i))
 		}
 	}
@@ -557,22 +602,34 @@ func (rf *Raft) LeaderCommitLog(startIndex int) {
 	//一直到日志的末尾?全部?
 	//---会出现批量提交的情况吗?注意下
 	//for i := logStartIndex; i < len(rf.Log); i++ {
+	DPrintf(rf.logHead, "peer:%d, debuglog:startIndex:%d,", rf.me, startIndex)
+	DPrintln(rf.Log)
+
+	//我没有直接用log长度做索引,避免因为截断产生的中断
 	for j := startIndex; j <= rf.Log[len(rf.Log)-1].Index; j++ { //就差个等号
 		i := rf.GetMatchIndexFromLog(j)
+		DPrintf(rf.logHead, "peer:%d, debuglog:j:%d,i:%d,len-1:%d,", rf.me, j, i, len(rf.Log)-1)
 		//if rf.Ack[i] <= len(rf.peers)/2 { //大哥,你可能是第一次遇到这个问题了,截断之后的ack使用,看来是之前的改动没有改彻底
-		if rf.Ack[rf.Log[i].Index] <= len(rf.peers)/2 {
+		if i > len(rf.Log)-1 { //lab4上边的检测失灵了
+			break
+		}
+		tmp := rf.Log[i].Index
+		if rf.Ack[tmp] <= len(rf.peers)/2 {
 			break
 		}
 
 		//提交,更新CommitIndex
-		DPrintf("peer:%d, log commited,content:\n", rf.me)
+		DPrintf(rf.logHead, "peer:%d, log commited,content:\n", rf.me)
 		DPrintln(rf.Log[i].Command)
 
 		rf.CommitIndex = rf.Log[i].Index
 		rf.NextCommitIndex = rf.CommitIndex + 1
-		DPrintf("peer:%d, refresh commitindex to %d\n", rf.me, rf.CommitIndex)
+		DPrintf(rf.logHead, "peer:%d, refresh commitindex to %d\n", rf.me, rf.CommitIndex)
 
 		rf.CommitLog(i)
+		DPrintf(rf.logHead, "peer:%d, debuglog:in:,", rf.me)
+		DPrintln(rf.Log)
+		DPrintf(rf.logHead, "peer:%d, debuglog:fuck:%d,%d\n", rf.me, j, len(rf.Log)-1)
 	}
 
 }
@@ -598,6 +655,9 @@ func (rf *Raft) sendAppendEntries(server int, args *AppendEntries, reply *Append
 
 //不搞那么麻烦了,直接在快照中-1,正常正常,超过了就数组长度
 func (rf *Raft) GetMatchIndexFromLog(index int) int {
+
+	DPrintf(rf.logHead, "peer:%d, in getmatch,index:%d, snapindex:%d\n", rf.me, index, rf.SnapshotIndex)
+	DPrintln(rf.Log)
 
 	//对应快照的情况,即上次校对后,我这边又生成了快照
 	if index <= rf.SnapshotIndex {
@@ -625,7 +685,7 @@ func (rf *Raft) AppendToFollower(server int, leaderLoopTimes int) {
 	args.LeaderLoopRound = rf.AppendLoopRound[server]
 	//args.LeaderCommit = rf.CommitIndex
 
-	DPrintf("peer:%d,in AppendToFollower, append loop round:%d, send append to %d\n", rf.me, args.LeaderLoopRound, server)
+	DPrintf(rf.logHead, "peer:%d,in AppendToFollower, append loop round:%d, send append to %d\n", rf.me, args.LeaderLoopRound, server)
 
 	var reply AppendEntriesReply
 
@@ -634,7 +694,7 @@ Snap:
 	//加入快照之后这个应该是全局的索引了,不再是当前的log数组中的索引了
 	//---这里的append也需要有正常入msgtype=2的功能,因为有可能会出现平时发快照的情形
 	if rf.NextIndex[server] == -1 { //默认值是-1,确定follower的具体进度,全量发快照和日志,一次性搞定
-		DPrintf("peer:%d, send all log to determine %d's nextindex\n", rf.me, server)
+		DPrintf(rf.logHead, "peer:%d, send all log to determine %d's nextindex\n", rf.me, server)
 		args.MsgType = 1
 
 		rf.mu.Lock() //出现了leaderCommitIndex和SanpshotIndex不一致的现象,所以吧前者赋值拿进来,并加个锁
@@ -649,8 +709,9 @@ Snap:
 
 		rf.mu.Lock()
 		args.LeaderCommit = rf.CommitIndex
+		//这个明显有可能会帽度
 		startLogIndex := rf.GetMatchIndexFromLog(rf.NextIndex[server])
-		DPrintf("peer:%d, to server:%d's nextindex: %d, startindex:%d\n", rf.me, server, rf.NextIndex[server], startLogIndex)
+		DPrintf(rf.logHead, "peer:%d, to server:%d's nextindex: %d, startindex:%d\n", rf.me, server, rf.NextIndex[server], startLogIndex)
 
 		//follower跟我断连了好久,我这边都已经生成快照了
 		//---可得保证这种情况下返回的是-1
@@ -672,16 +733,16 @@ Snap:
 		//此处加锁的目的在于把startLogIndex和entries的赋值原子化
 		rf.mu.Unlock()
 
-		DPrintf("peer:%d,to %d, send log index start from:%d, len:%d\n", rf.me, server, startLogIndex, len(args.Entries))
+		DPrintf(rf.logHead, "peer:%d,to %d, send log index start from:%d, len:%d\n", rf.me, server, startLogIndex, len(args.Entries))
 		for i := 0; i < len(args.Entries); i++ {
 			DPrint(reflect.ValueOf(args.Entries[i]))
-			DPrintf(":")
+			DPrintf(rf.logHead, ":")
 		}
-		DPrintf("\n")
+		DPrintf(rf.logHead, "\n")
 	}
 
 	ok := rf.sendAppendEntries(server, args, &reply)
-	DPrintf("peer:%d, leader append recv from server:%d, loopround:%d\n", rf.me, server, args.LeaderLoopRound)
+	DPrintf(rf.logHead, "peer:%d, leader append recv from server:%d, loopround:%d\n", rf.me, server, args.LeaderLoopRound)
 	DPrintln(reply)
 
 	//收包成功
@@ -692,7 +753,7 @@ Snap:
 			if len(args.Entries) > 0 { //表明这次传输是有数据的,需要做回包统计,要更新CommitIndex
 				//发日志牵涉到共识,暂时发快照只会在第一次探测rpc中存在,之后follower会自己进行快照生成
 
-				DPrintf("peer:%d, success send log, refresh nextindex, %d, %d\n", rf.me, rf.NextIndex[server], len(args.Entries))
+				DPrintf(rf.logHead, "peer:%d, success send log, refresh nextindex, %d, %d\n", rf.me, rf.NextIndex[server], len(args.Entries))
 				//主是不能读快照的,所以向上层server提交一定要保证完备
 				for j := 0; j < len(args.Entries); j++ {
 					DPrintln(args.Entries[j])
@@ -705,7 +766,7 @@ Snap:
 					rf.mu.Lock() //防止并发提交同一日志,使上报2次
 
 					rf.Ack[args.Entries[j].Index]++
-					DPrintf("peer:%d, incr log index:%d, ack:%d\n", rf.me, args.Entries[j].Index, rf.Ack[args.Entries[j].Index])
+					DPrintf(rf.logHead, "peer:%d, incr log index:%d, ack:%d\n", rf.me, args.Entries[j].Index, rf.Ack[args.Entries[j].Index])
 					//TestFailNoAgree2B里边测出来,这里会有后边的日志先提交的现象?
 					if rf.Ack[args.Entries[j].Index] > len(rf.peers)/2 &&
 						args.Entries[j].Index == rf.NextCommitIndex {
@@ -715,20 +776,21 @@ Snap:
 					rf.mu.Unlock() //防止并发提交同一日志,使上报2次
 
 				}
-
+				rf.persist() //在lab4发现的,上边更新CommitIndex没有及时持久化,重启读了旧值
+				//持久化是否有并发风险
 			}
 		} else {
 			if reply.Term > rf.CurrentTerm {
 				rf.toFollower(reply.Term)
 
-				DPrintf("peer:%d, recv append reply from:%d, meet big term,trans to follower, start loop\n", rf.me, server)
+				DPrintf(rf.logHead, "peer:%d, recv append reply from:%d, meet big term,trans to follower, start loop\n", rf.me, server)
 
 			}
 		}
-		DPrintf("peer:%d,send append success, append loop:%d, send append to %d\n", rf.me, args.LeaderLoopRound, server)
+		DPrintf(rf.logHead, "peer:%d,send append success, append loop:%d, send append to %d\n", rf.me, args.LeaderLoopRound, server)
 	} else {
 		//收包失败---这个库超时多大---老久了,直接堵死了
-		DPrintf("peer:%d,send append failed, append loop round:%d, send append to %d,now:%d,retry\n", rf.me, args.LeaderLoopRound, server, time.Now().UnixNano()/1000000)
+		DPrintf(rf.logHead, "peer:%d,send append failed, append loop round:%d, send append to %d,now:%d,retry\n", rf.me, args.LeaderLoopRound, server, time.Now().UnixNano()/1000000)
 	}
 
 }
@@ -736,19 +798,20 @@ Snap:
 //对单个节点定时发append消息
 //times的层级是高过round
 func (rf *Raft) AppendLoop(server int, leaderLoopTimes int) {
-	DPrintf("peer:%d, start append routine to %d\n", rf.me, server)
+	DPrintf(rf.logHead, "peer:%d, start append routine to %d\n", rf.me, server)
 	for {
 
 		if rf.Stop == true {
-			DPrintf("peer:%d, append loop stop\n", rf.me)
+			DPrintf(rf.logHead, "peer:%d, append loop stop\n", rf.me)
 			break
 		}
 
 		if rf.LeaderLoopStop[leaderLoopTimes] {
-			DPrintf("peer:%d, leader loop times:%d stop \n", rf.me, leaderLoopTimes)
+			DPrintf(rf.logHead, "peer:%d, leader loop times:%d stop \n", rf.me, leaderLoopTimes)
 			break
 		}
 
+		//这地方为了应对图8测试,搞成了每次循环发一个请求,不再阻塞
 		go rf.AppendToFollower(server, leaderLoopTimes)
 
 		//后边少写个0,造成频繁append每过TestCount
@@ -762,7 +825,7 @@ func (rf *Raft) AppendLoop(server int, leaderLoopTimes int) {
 //一对多,每个follower一个routine
 func (rf *Raft) LeaderLoop() {
 
-	DPrintf("peer:%d,start leader loop, times:%d\n", rf.me, rf.LeaderLoopTimes)
+	DPrintf(rf.logHead, "peer:%d,start leader loop, times:%d\n", rf.me, rf.LeaderLoopTimes)
 
 	for j := 0; j < len(rf.peers); j++ {
 		if j != rf.me {
@@ -778,9 +841,9 @@ func (rf *Raft) CompareLog(args *RequestVoteArgs) bool {
 	//我有日志,比较最后日志的任期和日志长度
 	/*
 		if len(rf.Log) > 0 {
-			DPrintf("peer:%d,voteargs:", rf.me)
+			DPrintf(rf.logHead,"peer:%d,voteargs:", rf.me)
 			DPrintln(args)
-			DPrintf("peer:%d,my log:%d %d\n", rf.me, rf.Log[len(rf.Log)-1].Term, len(rf.Log)-1)
+			DPrintf(rf.logHead,"peer:%d,my log:%d %d\n", rf.me, rf.Log[len(rf.Log)-1].Term, len(rf.Log)-1)
 
 			if args.LastLogTerm < rf.Log[len(rf.Log)-1].Term ||
 				(args.LastLogTerm == rf.Log[len(rf.Log)-1].Term && args.LastLogIndex < len(rf.Log)-1) {
@@ -793,13 +856,14 @@ func (rf *Raft) CompareLog(args *RequestVoteArgs) bool {
 		}
 	*/
 
-	DPrintf("peer:%d,voteargs:", rf.me)
+	DPrintf(rf.logHead, "peer:%d,voteargs:", rf.me)
 	DPrintln(args)
-	DPrintf("peer:%d,my log:%d %d\n", rf.me, rf.LastLogTerm, rf.LastLogIndex)
+	DPrintf(rf.logHead, "peer:%d,my log:%d %d\n", rf.me, rf.LastLogTerm, rf.LastLogIndex)
 	//考虑下初始状态下没日志的情况
 	//---接收方只有日志进度优于投票发起方的情况下才会返回拒绝
 	if args.LastLogTerm < rf.LastLogTerm ||
-		(args.LastLogTerm == rf.LastLogTerm && args.LastLogIndex < rf.LastLogIndex) {
+		(args.LastLogTerm == rf.LastLogTerm && args.LastLogIndex < rf.LastLogIndex) ||
+		(args.LastLogTerm == rf.LastLogTerm && args.LastLogIndex == rf.LastLogIndex && args.CommitIndex < rf.CommitIndex) {
 		return false
 	} else { //相等情况下也会返回true,即赞同
 		return true
@@ -811,8 +875,9 @@ func (rf *Raft) CompareLog(args *RequestVoteArgs) bool {
 // example RequestVote RPC handler.
 //
 func (rf *Raft) RequestVote(args *RequestVoteArgs, reply *RequestVoteReply) {
-	DPrintf("peer:%d,recv voterequest from %d, his term:%d, my term:%d\n", rf.me, args.CandidateId, args.Term, rf.CurrentTerm)
+	DPrintf(rf.logHead, "peer:%d,recv voterequest from %d, his term:%d, my term:%d\n", rf.me, args.CandidateId, args.Term, rf.CurrentTerm)
 	// Your code here (2A, 2B).
+	//收到高任期号被打击,但日志并不落后,只会造成系统混乱
 	biggerTerm := (args.Term > rf.CurrentTerm)
 	if biggerTerm {
 		//考虑当前可能的几种状态
@@ -827,8 +892,9 @@ func (rf *Raft) RequestVote(args *RequestVoteArgs, reply *RequestVoteReply) {
 	//---votefor可表示是否是candidate
 
 	//votefor条件,投别人就不能投你了
+	//---如果此轮没选出来,这个voteFor也不会清除,那么会一直阻塞下去吗?
 	if biggerTerm && bLog && rf.VoteFor == -1 {
-		DPrintf("peer:%d,return granted\n", rf.me)
+		DPrintf(rf.logHead, "peer:%d,return granted\n", rf.me)
 		reply.VoteGranted = true
 		rf.VoteFor = args.CandidateId
 		//在刚初始情况下,我是follower状态,不重置这个,一会也要发起选举了
@@ -836,7 +902,7 @@ func (rf *Raft) RequestVote(args *RequestVoteArgs, reply *RequestVoteReply) {
 		rf.persist()
 		//怎么又回想起不同任期双主的问题了...
 	} else {
-		DPrintf("peer:%d,case 3\n", rf.me)
+		DPrintf(rf.logHead, "peer:%d,case 3\n", rf.me)
 		reply.VoteGranted = false
 	}
 
@@ -883,15 +949,15 @@ func (rf *Raft) sendRequestVote(server int, args *RequestVoteArgs, reply *Reques
 //如果出现阻塞,这轮发起的选举事实上没有结束,routine死不了,RPC等值会被共用
 //如果后来发起过新的选举,那么旧的选举自然而然就没有意义了
 func (rf *Raft) GoLeaderElection(server int, electionTimes int, args *RequestVoteArgs) {
-	DPrintf("peer:%d,toserver:%d, in GoLeaderElection, electionTimes:%d\n", rf.me, server, electionTimes)
+	DPrintf(rf.logHead, "peer:%d,toserver:%d, in GoLeaderElection, electionTimes:%d\n", rf.me, server, electionTimes)
 
 	var reply RequestVoteReply
 
 	//发一次就够了,这地方循环发送确实没啥必要,大不了别人选上嘛---说的好
 	ok := rf.sendRequestVote(server, args, &reply)
 	if ok {
-		DPrintf("peer:%d,toserver:%d, sendRequestVote success\n", rf.me, server)
-		DPrintf("peer:%d,reply vote:%t,term:%d\n", rf.me, reply.VoteGranted, reply.Term)
+		DPrintf(rf.logHead, "peer:%d,toserver:%d, sendRequestVote success\n", rf.me, server)
+		DPrintf(rf.logHead, "peer:%d,reply vote:%t,term:%d\n", rf.me, reply.VoteGranted, reply.Term)
 
 		//对方投我
 		if reply.VoteGranted {
@@ -912,14 +978,14 @@ func (rf *Raft) GoLeaderElection(server int, electionTimes int, args *RequestVot
 			if reply.Term > rf.CurrentTerm { //这个强制性动作其实跟state和选举世代都没有关系
 				rf.toFollower(reply.Term)
 
-				DPrintf("peer:%d,recv vote reply, meet big term, trans to follower, start loop, %d, %d\n", rf.me, rf.CurrentTerm, reply.Term)
+				DPrintf(rf.logHead, "peer:%d,recv vote reply, meet big term, trans to follower, start loop, %d, %d\n", rf.me, rf.CurrentTerm, reply.Term)
 			}
 		}
 		//上述两种状态是不需要汇总的,但不能重复进入
 		//另外还有一种平票拒绝的情况
 	} else {
 		//rpc失败
-		DPrintf("peer:%d,toserver:%d,sendRequestVote rpc fail\n", rf.me, server)
+		DPrintf(rf.logHead, "peer:%d,toserver:%d,sendRequestVote rpc fail\n", rf.me, server)
 	}
 
 	//消息全收到的时候,做二次发起选举的准备
@@ -930,16 +996,16 @@ func (rf *Raft) GoLeaderElection(server int, electionTimes int, args *RequestVot
 			//超时时间其实不必重置,初始化的时候随机下以后一直用就行了
 			if rf.State == 3 {
 				LoopVoteInterval := rf.getRand(400)
-				DPrintf("peer:%d,recv over,need election again,need sleep %dms\n", rf.me, LoopVoteInterval)
+				DPrintf(rf.logHead,"peer:%d,recv over,need election again,need sleep %dms\n", rf.me, LoopVoteInterval)
 				time.Sleep(time.Duration(LoopVoteInterval * 1000000))
-				DPrintf("peer:%d,wake up\n", rf.me)
+				DPrintf(rf.logHead,"peer:%d,wake up\n", rf.me)
 
 				if electionTimes == rf.ElectionTimes {
 					rf.ElectionTimes++
-					//DPrintf("peer:%d,inrc ElectionTimes, case 2, to: %d\n", rf.me, rf.ElectionTimes)
+					//DPrintf(rf.logHead,"peer:%d,inrc ElectionTimes, case 2, to: %d\n", rf.me, rf.ElectionTimes)
 					rf.RPCTimes = append(rf.RPCTimes, 0)
 					rf.VoteMe = append(rf.VoteMe, 1)
-					//DPrintf("peer:%d,push rpctimes\n", rf.me)
+					//DPrintf(rf.logHead,"peer:%d,push rpctimes\n", rf.me)
 					go rf.startLeaderElection(electionTimes + 1)
 				}
 
@@ -950,13 +1016,13 @@ func (rf *Raft) GoLeaderElection(server int, electionTimes int, args *RequestVot
 
 func (rf *Raft) startLeaderElection() {
 
-	DPrintf("peer:%d,in startLeaderElection\n", rf.me)
+	DPrintf(rf.logHead, "peer:%d,in startLeaderElection\n", rf.me)
 
 	rf.mu.Lock()
 
 	//只有可能从3变到1,所以只考虑这一种情况了.发生了并发,在其他的routine被改变成了1
 	if rf.State == 1 {
-		DPrintf("peer:%d,in startLeaderElection meet big term to become follower\n", rf.me)
+		DPrintf(rf.logHead, "peer:%d,in startLeaderElection meet big term to become follower\n", rf.me)
 		rf.mu.Unlock()
 		return
 	}
@@ -968,6 +1034,7 @@ func (rf *Raft) startLeaderElection() {
 	args.CandidateId = rf.me
 	args.LastLogIndex = rf.LastLogIndex
 	args.LastLogTerm = rf.LastLogTerm
+	args.CommitIndex = rf.CommitIndex
 
 	//还是做接力,多个routine,都尝试总结
 	for i := 0; i < len(rf.peers); i++ {
@@ -978,9 +1045,9 @@ func (rf *Raft) startLeaderElection() {
 
 	//睡一会
 	LoopVoteInterval := 500 + rf.getRand(500)
-	DPrintf("peer:%d,wait for recv msg,need sleep %dms\n", rf.me, LoopVoteInterval)
+	DPrintf(rf.logHead, "peer:%d,wait for recv msg,need sleep %dms\n", rf.me, LoopVoteInterval)
 	time.Sleep(time.Duration(LoopVoteInterval * 1000000))
-	DPrintf("peer:%d,wake up\n", rf.me)
+	DPrintf(rf.logHead, "peer:%d,wake up\n", rf.me)
 
 	//自然结束,汇总工作交给GoLeaderElection
 	//---改了,这个routine成为了candidate的专属,需要睡眠检查是否选主成功
@@ -994,7 +1061,7 @@ func (rf *Raft) startLeaderElection() {
 
 	//这里自己创建自己,不搞无限循环了
 	//---自己变自己,会有点重复动作
-	DPrintf("peer:%d,last time not make a leader, vote again\n", rf.me)
+	DPrintf(rf.logHead, "peer:%d,last time not make a leader, vote again\n", rf.me)
 	rf.toCandidate()
 }
 
@@ -1006,14 +1073,14 @@ func (rf *Raft) Loop() {
 	//放外边是为了打日志从0开始,不在StartElection中是因为要做为StartElection的参数
 	for {
 		if rf.Stop == true {
-			DPrintf("peer:%d, main loop stop\n", rf.me)
+			DPrintf(rf.logHead, "peer:%d, main loop stop\n", rf.me)
 			break
 		}
 
 		nowMs := time.Now().UnixNano() / 1000000
 		diff := nowMs - rf.LastRecvAppendMs
 
-		DPrintf("peer:%d,times:%d,loopround:%d, now:%d, lastrecv:%d,diff:%d,interval:%d\n", rf.me, rf.ElectionTimes, rf.LoopRound, nowMs, rf.LastRecvAppendMs, diff, rf.StartVoteInterval)
+		DPrintf(rf.logHead, "peer:%d,times:%d,loopround:%d, now:%d, lastrecv:%d,diff:%d,interval:%d\n", rf.me, rf.ElectionTimes, rf.LoopRound, nowMs, rf.LastRecvAppendMs, diff, rf.StartVoteInterval)
 
 		//state条件是后加的,你在选举状态时是不能再次启动选举的
 		//后边的状态其实不用判断,后边会break,只有是follower状态时才有这个loop
@@ -1029,10 +1096,10 @@ func (rf *Raft) Loop() {
 				//rf.ElectionTimes++
 				rf.RPCTimes = append(rf.RPCTimes, 0)
 				rf.VoteMe = append(rf.VoteMe, 1)
-				//DPrintf("peer:%d,push rpctimes\n", rf.me)
+				//DPrintf(rf.logHead,"peer:%d,push rpctimes\n", rf.me)
 				rf.mu.Unlock()
 
-				//DPrintf("peer:%d,inrc ElectionTimes, case 1, to: %d\n", rf.me, rf.ElectionTimes)
+				//DPrintf(rf.logHead,"peer:%d,inrc ElectionTimes, case 1, to: %d\n", rf.me, rf.ElectionTimes)
 
 				//routine接力
 				//---这地方完全不用起routine啊
@@ -1049,13 +1116,13 @@ func (rf *Raft) Loop() {
 }
 
 func (rf *Raft) PrintLog() {
-	DPrintf("peer:%d,all log:", rf.me)
+	DPrintf(rf.logHead, "peer:%d,all log:", rf.me)
 
 	for i := 0; i < len(rf.Log); i++ {
 		DPrint(reflect.ValueOf(rf.Log[i]))
-		DPrintf(":")
+		DPrintf(rf.logHead, ":")
 	}
-	DPrintf("\n")
+	DPrintf(rf.logHead, "\n")
 }
 
 //
@@ -1073,9 +1140,8 @@ func (rf *Raft) PrintLog() {
 // the leader.
 //
 //安全性限制,我最新提交一个新值才能开始传旧值,在实现时,具体放宽到收到新请求就可以开始了
-//不等提交,立刻返回?
 //start加锁范围要宽些,毕竟可以在外部多线程调用,TestUnreliableAgree2C测出来的
-func (rf *Raft) Start(command interface{}) (int, int, bool) {
+func (rf *Raft) Start(command interface{}, ts int64) (int, int, bool) {
 
 	index := -1
 	term := -1
@@ -1092,7 +1158,7 @@ func (rf *Raft) Start(command interface{}) (int, int, bool) {
 		return index, term, isLeader
 	}
 
-	DPrintf("peer:%d,in start log content:", rf.me)
+	DPrintf(rf.logHead, "peer:%d,in start log content:", rf.me)
 	pstr := reflect.ValueOf(command)
 	DPrintln(pstr)
 
@@ -1107,6 +1173,7 @@ func (rf *Raft) Start(command interface{}) (int, int, bool) {
 	rf.LastLogTerm = rf.CurrentTerm
 	item.Index = rf.LastLogIndex
 	item.Term = rf.CurrentTerm
+	item.Ts = ts
 
 	rf.Log = append(rf.Log, item) //append定期检查的时候查看是否需要发送部分日志---是不是得看看这个操作有没有用
 	rf.persist()
@@ -1126,7 +1193,7 @@ func (rf *Raft) Start(command interface{}) (int, int, bool) {
 	term = rf.CurrentTerm
 	isLeader = true
 
-	DPrintf("peer:%d,return the test start value:%d\n", rf.me, index)
+	DPrintf(rf.logHead, "peer:%d,return the test start value:%d\n", rf.me, index)
 
 	return index, term, isLeader //tester并发调start的时候,出现问题,返回的并不是23456,因为多routine同步操作Log
 }
@@ -1139,7 +1206,7 @@ func (rf *Raft) Start(command interface{}) (int, int, bool) {
 //
 func (rf *Raft) Kill() {
 	// Your code here, if desired.
-	DPrintf("peer:%d, killed\n", rf.me)
+	DPrintf(rf.logHead, "peer:%d, killed\n", rf.me)
 
 	//follower状态下main loop停掉,leader状态下append loop停掉,candidate状态下直接杀了吧
 	rf.Stop = true
@@ -1148,7 +1215,7 @@ func (rf *Raft) Kill() {
 
 	time.Sleep(time.Duration(10 * 1000000)) //少睡会
 	nowMs := time.Now().UnixNano() / 1000000
-	DPrintf("peer:%d, kill sleep over,now:%d\n", rf.me, nowMs)
+	DPrintf(rf.logHead, "peer:%d, kill sleep over,now:%d\n", rf.me, nowMs)
 
 }
 
@@ -1165,11 +1232,12 @@ func (rf *Raft) Kill() {
 // for any long-running work.
 //
 func Make(peers []*labrpc.ClientEnd, me int,
-	persister *Persister, applyCh chan ApplyMsg, MapCh chan bool) *Raft {
-	//DPrintf("peer:%d,make\n", me)
-	DPrintf("peer:%d,make\n", me)
+	persister *Persister, applyCh chan ApplyMsg, MapCh chan bool, logHead string) *Raft {
+	//DPrintf(rf.logHead,"peer:%d,make\n", me)
+	DPrintf(logHead, "peer:%d,make\n", me)
 
 	rf := &Raft{}
+	rf.logHead = logHead
 	rf.peers = peers
 	rf.Persister = persister
 	// initialize from state persisted before a crash
@@ -1240,7 +1308,7 @@ func Make(peers []*labrpc.ClientEnd, me int,
 		rf.AppendLoopRound[i] = 0
 	}
 
-	DPrintf("peer:%d,lastRecv:%d\n", rf.me, rf.LastRecvAppendMs)
+	DPrintf(rf.logHead, "peer:%d,lastRecv:%d\n", rf.me, rf.LastRecvAppendMs)
 
 	//放前边岂不是有些值走了正常的初始化,没有从persist中取
 	rf.readPersist(persister.ReadRaftState())
@@ -1282,7 +1350,7 @@ func (rf *Raft) toCandidate() {
 
 	rf.State = 3
 
-	DPrintf("peer:%d,incr term\n", rf.me)
+	DPrintf(rf.logHead, "peer:%d,incr term\n", rf.me)
 	rf.CurrentTerm += 1
 	rf.VoteFor = rf.me
 	rf.persist()
@@ -1327,7 +1395,7 @@ func (rf *Raft) toLeader() {
 	}
 
 	rf.StartWork = false
-	DPrintf("peer:%d,become leader\n", rf.me)
+	DPrintf(rf.logHead, "peer:%d,become leader\n", rf.me)
 
 	//应该停掉不假,但这个事情不应该拖延到现在才做啊?
 	//---放到什么时候做了?
@@ -1358,7 +1426,7 @@ func (rf *Raft) toFollower(term int) {
 			rf.LeaderLoopStop[rf.LeaderLoopTimes] = true
 		}
 
-		DPrintf("peer:%d,case 1, start loop\n", rf.me)
+		DPrintf(rf.logHead, "peer:%d,case 1, start loop\n", rf.me)
 		//旧loop删掉了吗
 		go rf.Loop()
 	}
@@ -1377,7 +1445,7 @@ func (rf *Raft) DiscardLog(index int) {
 	//rf.mu.Lock()
 	//defer rf.mu.Unlock()
 	//follower调用时由外部加锁,leader调用时,因为有server锁,所以不会有并发操作rf.Log的问题
-	DPrintf("peer:%d,delete log smaller than %d included\n", rf.me, index)
+	DPrintf(rf.logHead, "peer:%d,delete log smaller than %d included\n", rf.me, index)
 	//rf.Log = rf.Log[:index+1]你这写的啥玩意,你知不知道你这写的是什么意思?
 	//这么写会不会越界
 	rf.SnapshotIndex = rf.Log[index].Index //也是后加的,之前没改彻底
@@ -1413,6 +1481,9 @@ func (rf *Raft) DiscardLog(index int) {
 		}
 
 	*/
+	DPrintf(rf.logHead, "peer:%d,snapindex:%d, ", rf.me, rf.SnapshotIndex)
+	DPrintln(rf.Log)
+
 	rf.persist()
 }
 
@@ -1424,12 +1495,13 @@ const (
 
 //要是有截断的话这个就完全没法用了...
 //---考虑下截断的情况---并不是把日志全都抹了,要留一点尾巴用于这个查询
-func (rf *Raft) SearchLog(command interface{}) string {
+func (rf *Raft) SearchLog(command interface{}, ts int64) string {
 	rf.mu.Lock()
 	defer rf.mu.Unlock()
 
 	for i := len(rf.Log) - 1; i >= 0; i-- {
-		if command == rf.Log[i].Command {
+		//if command == rf.Log[i].Command {专门为了shardkv用的,op里边有map没法直接判等
+		if ts == rf.Log[i].Ts {
 			if rf.CommitIndex >= rf.Log[i].Index {
 				return AlreadyCommited
 			} else {
