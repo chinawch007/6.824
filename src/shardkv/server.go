@@ -69,8 +69,8 @@ type ShardKV struct {
 	configs []shardmaster.Config //需要像master一样把所有的config版本都记录下来吗?
 	valid   []bool               //对于每个配置,是否真的曾拉过数据负责读写,用于判断是否能被其他group拉取
 
-	logHead    string
-	configInit bool
+	logHead string
+	//configInit bool
 
 	configNow shardmaster.Config
 	opTs      []int64
@@ -270,6 +270,10 @@ func (kv *ShardKV) PutAppend(args *PutAppendArgs, reply *PutAppendReply) {
 		return
 	}
 
+	fmt.Printf("shardserver:%v recv confignum:%d", kv.logHead, args.ConfigNum)
+	fmt.Printf("shardserver:%v config:", kv.logHead)
+	fmt.Println(kv.configNow)
+
 	if args.ConfigNum != kv.configNow.Num {
 		reply.Err = "ConfigNumNotMatch"
 		fmt.Printf("shardserver:%v confignum not match, args:%d, me:%d\n", kv.logHead, args.ConfigNum, kv.configNow.Num)
@@ -399,13 +403,14 @@ func (kv *ShardKV) PutEmptyLog(serverName string) {
 //
 func (kv *ShardKV) Kill() {
 	kv.rf.Kill()
+	/*
+		DPrintf("shardserver:%v final kv:\n", kv.logHead)
 
-	DPrintf("shardserver:%v final kv:\n", kv.logHead)
-
-	for k, v := range kv.Table {
-		DPrintf("shardserver:%v shard:%d:", kv.logHead, k)
-		DPrintln(v)
-	}
+		for k, v := range kv.Table {
+			DPrintf("shardserver:%v shard:%d:", kv.logHead, k)
+			DPrintln(v)
+		}
+	*/
 
 	kv.Stop = true
 	// Your code here, if desired.
@@ -491,7 +496,7 @@ func StartServer(servers []*labrpc.ClientEnd, me int, persister *raft.Persister,
 		kv.CommitOp(kv.rf.Log[i].Command.(Op))
 	}
 
-	kv.configInit = false
+	//kv.configInit = false
 
 	//kv.readPersistServerState(kv.SnapshotPersister.ReadServerState())
 
@@ -532,8 +537,8 @@ func (kv *ShardKV) makeSnapshot(targetIndex int) {
 	//e.Encode(kv.configs)
 	//e.Encode(kv.valid) //其实是跟configs同步的,可以用日志生成的
 	e.Encode(kv.configNow)
-	e.Encode(kv.configInit) //上边都是跟日志相关的,你这个跟日志不相关啊
-	DPrintf("shardserver:%v, configinit: %t\n", kv.logHead, kv.configInit)
+	//e.Encode(kv.configInit) //上边都是跟日志相关的,你这个跟日志不相关啊
+	//DPrintf("shardserver:%v, configinit: %t\n", kv.logHead, kv.configInit)
 
 	data := w.Bytes()
 
@@ -563,15 +568,15 @@ func (kv *ShardKV) makeTableFromSnapshot() {
 	//var configs []shardmaster.Config
 	//var valid []bool
 	var configNow shardmaster.Config
-	var configInit bool
+	//var configInit bool
 	//压码解码是按特定顺序的吗?---类型?
 	if d.Decode(&index) != nil ||
 		d.Decode(&term) != nil ||
 		d.Decode(&table) != nil ||
 		//d.Decode(&configs) != nil ||
 		//d.Decode(&valid) != nil ||
-		d.Decode(&configNow) != nil ||
-		d.Decode(&configInit) != nil { //这个table直接这么搞也不知道好不好使
+		d.Decode(&configNow) != nil {
+		//d.Decode(&configInit) != nil { //这个table直接这么搞也不知道好不好使
 
 		DPrintf("shardserver:%v, makeTableFromSnapshot failed\n", kv.logHead)
 	} else {
@@ -579,7 +584,7 @@ func (kv *ShardKV) makeTableFromSnapshot() {
 		//kv.configs = configs
 		//kv.valid = valid
 		kv.configNow = configNow
-		kv.configInit = configInit
+		//kv.configInit = configInit
 	}
 
 	//DPrintf("shardserver:%v, after makeTableFromSnapshot, table:", kv.logHead)
