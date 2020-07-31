@@ -1,5 +1,9 @@
 package shardmaster
 
+/*
+	这里的rpc都是给管理员用的
+*/
+
 //
 // Master shard server: assigns shards to replication groups.
 //
@@ -24,18 +28,28 @@ const NShards = 10
 // Please don't change this.
 type Config struct {
 	Num    int              // config number
-	Shards [NShards]int     // shard -> gid
-	Groups map[int][]string // gid -> servers[]
+	Shards [NShards]int     // shard -> gid---固定10个shard的话,那么group是小于这个数目的
+	Groups map[int][]string // gid -> servers[]---具体机器名怎么定义得看test才知道吧
 }
 
+//他为什么要搞出这种每次更新配置都添加一个Config的模式呢?
+
 const (
-	OK = "OK"
+	OK              = "OK"
+	ErrNoKey        = "ErrNoKey"
+	ErrRaftTimeout  = "ErrTimeout"
+	AlreadyCommited = "AlreadyCommited"
+	NotCommited     = "NotCommited"
+	KeyNotExist     = "KeyNotExist"
 )
 
 type Err string
 
 type JoinArgs struct {
 	Servers map[int][]string // new GID -> servers mappings
+	//可能传进来多个组
+	Retry bool
+	Ts    int64
 }
 
 type JoinReply struct {
@@ -44,7 +58,9 @@ type JoinReply struct {
 }
 
 type LeaveArgs struct {
-	GIDs []int
+	GIDs  []int
+	Retry bool
+	Ts    int64
 }
 
 type LeaveReply struct {
@@ -55,6 +71,8 @@ type LeaveReply struct {
 type MoveArgs struct {
 	Shard int
 	GID   int
+	Retry bool
+	Ts    int64
 }
 
 type MoveReply struct {
@@ -64,10 +82,21 @@ type MoveReply struct {
 
 type QueryArgs struct {
 	Num int // desired config number
+	Ts  int64
 }
 
 type QueryReply struct {
 	WrongLeader bool
 	Err         Err
 	Config      Config
+}
+
+type QueryAllArgs struct {
+	Ts int64
+}
+
+type QueryAllReply struct {
+	WrongLeader bool
+	Err         Err
+	Configs     []Config
 }

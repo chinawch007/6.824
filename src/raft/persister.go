@@ -12,9 +12,10 @@ package raft
 import "sync"
 
 type Persister struct {
-	mu        sync.Mutex
-	raftstate []byte
-	snapshot  []byte
+	mu          sync.Mutex //你看看这,自带个锁,多好
+	raftstate   []byte
+	snapshot    []byte
+	serverstate []byte
 }
 
 func MakePersister() *Persister {
@@ -67,4 +68,16 @@ func (ps *Persister) SnapshotSize() int {
 	ps.mu.Lock()
 	defer ps.mu.Unlock()
 	return len(ps.snapshot)
+}
+
+func (ps *Persister) SaveServerState(state []byte) {
+	ps.mu.Lock()
+	defer ps.mu.Unlock()
+	ps.serverstate = state
+}
+
+func (ps *Persister) ReadServerState() []byte {
+	ps.mu.Lock()
+	defer ps.mu.Unlock()
+	return ps.serverstate
 }

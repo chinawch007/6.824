@@ -171,12 +171,14 @@ func (ck *Clerk) PutAppend(key string, value string, op string) {
 	NewConfig:
 		ck.config = ck.sm.Query(-1)
 		args.ConfigNum = ck.config.Num
-
 		DPrintf("shardclient:%d use config num:%d\n", ck.clientNum, args.ConfigNum)
+		DPrintf("shardclient:%d get config:", ck.clientNum)
+		DPrintln(ck.config)
 
 		j++
 		shard := key2shard(key)
 		gid := ck.config.Shards[shard]
+		DPrintf("shardclient:%d to group:%d\n", ck.clientNum, gid)
 		if servers, ok := ck.config.Groups[gid]; ok {
 			for si := 0; si < len(servers); si++ {
 				srv := ck.make_end(servers[si])

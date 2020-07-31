@@ -72,8 +72,11 @@ type ShardKV struct {
 	logHead string
 	//configInit bool
 
-	configNow shardmaster.Config
-	opTs      []int64
+	configNow     shardmaster.Config
+	configTo      shardmaster.Config
+	opTs          []int64
+	shardValid    map[int][]bool
+	configHistory []shardmaster.Config
 }
 
 func (kv *ShardKV) isLeader() bool {
@@ -100,30 +103,54 @@ func (kv *ShardKV) CommitOp(op Op) {
 		for _, v := range op.TransShards {
 			delete(kv.Table, v)
 		}
-	} else if op.Op == "RefreshConfig" { //暂时不删数据,先把主体过了
-		//kv.configs = append(kv.configs, op.Config)
-		kv.configNow = op.Config
+	} else if op.Op == "RefreshConfig" {
+		//暂时这个to只是用来应对服务和做拉数据特出处理用的
+		kv.configTo = op.Config
+		if op.Config.Num > len(kv.configHistory) {
+			kv.configHistory = append(kv.configHistory, op.Config)
+		}
 
-		/*
-			for i, v := range kv.configs {
-				if i > 0 && v.Num != kv.configs[i-1].Num+1 {
-					fmt.Printf("shardserver:%v configs not continue\n", kv.logHead)
-				}
-			}
-		*/
-
-		for k1, v1 := range op.Table { //table为空就不做操作了
-			//kv.Table[k1] = v1
-			if _, ok := kv.Table[k1]; !ok {
-				kv.Table[k1] = make(map[string]string)
-			}
-
-			for k2, v2 := range v1 {
-				kv.Table[k1][k2] = v2
+		//会出现多次,按需初始化
+		if _, ok := kv.shardValid[op.Config.Num]; !ok {
+			kv.shardValid[op.Config.Num] = []bool{}
+			for i := 0; i < 10; i++ {
+				kv.shardValid[op.Config.Num] = append(kv.shardValid[op.Config.Num], false)
 			}
 		}
 
-		//kv.persistServerState()
+		if op.Config.Num == 1 {
+			for i := 0; i < 10; i++ {
+				kv.shardValid[1][i] = true
+			}
+		} else {
+			for k1, v1 := range op.Table { //table为空就不做操作了
+				if _, ok := kv.Table[k1]; !ok {
+					kv.Table[k1] = make(map[string]string)
+				}
+
+				for k2, v2 := range v1 {
+					kv.Table[k1][k2] = v2
+				}
+
+				kv.shardValid[op.Config.Num][k1] = true
+			}
+		}
+		fmt.Printf("shardserver:%v valid shard:", kv.logHead)
+		fmt.Println(kv.shardValid)
+
+		flag := true
+
+		for i, v := range kv.shardValid[op.Config.Num] {
+			if kv.configTo.Shards[i] == kv.gid && !v { //此处添加条件,得是我负责的我才能设置true
+				flag = false
+				break
+			}
+		}
+
+		if flag {
+			kv.configNow = op.Config
+		}
+
 	}
 
 	fmt.Printf("shardserver:%v commit:", kv.logHead)
@@ -186,14 +213,22 @@ func (kv *ShardKV) Get(args *GetArgs, reply *GetReply) {
 		return
 	}
 
-	if kv.configNow.Shards[key2shard(args.Key)] != kv.gid {
+	//要用已知最新的配置提供服务
+	if args.ConfigNum != kv.configTo.Num {
+		reply.Err = "ConfigNumNotMatch"
+		fmt.Printf("shardserver:%v confignum not match, args:%d, me:%d\n", kv.logHead, args.ConfigNum, kv.configTo.Num)
+		return
+	}
+
+	if kv.configTo.Shards[key2shard(args.Key)] != kv.gid {
 		reply.Err = WrongGroup
 		return
 	}
 
-	if args.ConfigNum != kv.configNow.Num {
-		reply.Err = "ConfigNumNotMatch"
-		fmt.Printf("shardserver:%v confignum not match, args:%d, me:%d\n", kv.logHead, args.ConfigNum, kv.configNow.Num)
+	//经过上边的判断,虽然这个shard是我负责,但是我还没准备好
+	if !kv.shardValid[kv.configTo.Num][key2shard(args.Key)] {
+		reply.Err = "ShardNotReady"
+		fmt.Printf("shardserver:%v shard not ready, confignum:%d, shardid:%d\n", kv.logHead, kv.configTo.Num, key2shard(args.Key))
 		return
 	}
 
@@ -264,19 +299,24 @@ func (kv *ShardKV) PutAppend(args *PutAppendArgs, reply *PutAppendReply) {
 		return
 	}
 
+	if args.ConfigNum != kv.configTo.Num {
+		reply.Err = "ConfigNumNotMatch"
+		fmt.Printf("shardserver:%v confignum not match, args:%d, me:%d\n", kv.logHead, args.ConfigNum, kv.configTo.Num)
+		return
+	}
+
 	//除非初始状态下,不然此处不会没有配置,测试程序里应该都会先搞好配置再读写
-	if kv.configNow.Shards[key2shard(args.Key)] != kv.gid {
+	if kv.configTo.Shards[key2shard(args.Key)] != kv.gid {
 		reply.Err = WrongGroup
 		return
 	}
 
-	fmt.Printf("shardserver:%v recv confignum:%d", kv.logHead, args.ConfigNum)
-	fmt.Printf("shardserver:%v config:", kv.logHead)
-	fmt.Println(kv.configNow)
+	fmt.Printf("shardserver:%v valid:", kv.logHead)
+	fmt.Println(kv.shardValid)
 
-	if args.ConfigNum != kv.configNow.Num {
-		reply.Err = "ConfigNumNotMatch"
-		fmt.Printf("shardserver:%v confignum not match, args:%d, me:%d\n", kv.logHead, args.ConfigNum, kv.configNow.Num)
+	if !kv.shardValid[kv.configTo.Num][key2shard(args.Key)] {
+		reply.Err = "ShardNotReady"
+		fmt.Printf("shardserver:%v shard not ready, confignum:%d, shardid:%d, \n", kv.logHead, kv.configTo.Num, key2shard(args.Key))
 		return
 	}
 
@@ -496,9 +536,8 @@ func StartServer(servers []*labrpc.ClientEnd, me int, persister *raft.Persister,
 		kv.CommitOp(kv.rf.Log[i].Command.(Op))
 	}
 
-	//kv.configInit = false
-
-	//kv.readPersistServerState(kv.SnapshotPersister.ReadServerState())
+	kv.shardValid = make(map[int][]bool)
+	kv.configHistory = []shardmaster.Config{}
 
 	go kv.RecvRaftMsgRoutine()
 	go kv.RecvSanpshotRoutine()
@@ -525,7 +564,7 @@ func (kv *ShardKV) makeSnapshot(targetIndex int) {
 		index = kv.rf.GetMatchIndexFromLog(targetIndex)
 	}
 
-	//DPrintf("shardserver:%v, debug: %d, %d\n", kv.logHead, index, kv.rf.CommitIndex)
+	DPrintf("shardserver:%v, debug: %d, %d\n", kv.logHead, index, kv.rf.CommitIndex)
 	//你这个写法其实主从的日志截断位置是不一致的
 
 	w := new(bytes.Buffer)
@@ -537,6 +576,8 @@ func (kv *ShardKV) makeSnapshot(targetIndex int) {
 	//e.Encode(kv.configs)
 	//e.Encode(kv.valid) //其实是跟configs同步的,可以用日志生成的
 	e.Encode(kv.configNow)
+	e.Encode(kv.configTo)
+	e.Encode(kv.shardValid)
 	//e.Encode(kv.configInit) //上边都是跟日志相关的,你这个跟日志不相关啊
 	//DPrintf("shardserver:%v, configinit: %t\n", kv.logHead, kv.configInit)
 
@@ -568,6 +609,8 @@ func (kv *ShardKV) makeTableFromSnapshot() {
 	//var configs []shardmaster.Config
 	//var valid []bool
 	var configNow shardmaster.Config
+	var configTo shardmaster.Config
+	var shardValid map[int][]bool
 	//var configInit bool
 	//压码解码是按特定顺序的吗?---类型?
 	if d.Decode(&index) != nil ||
@@ -575,7 +618,9 @@ func (kv *ShardKV) makeTableFromSnapshot() {
 		d.Decode(&table) != nil ||
 		//d.Decode(&configs) != nil ||
 		//d.Decode(&valid) != nil ||
-		d.Decode(&configNow) != nil {
+		d.Decode(&configNow) != nil ||
+		d.Decode(&configTo) != nil ||
+		d.Decode(&shardValid) != nil {
 		//d.Decode(&configInit) != nil { //这个table直接这么搞也不知道好不好使
 
 		DPrintf("shardserver:%v, makeTableFromSnapshot failed\n", kv.logHead)
@@ -584,7 +629,13 @@ func (kv *ShardKV) makeTableFromSnapshot() {
 		//kv.configs = configs
 		//kv.valid = valid
 		kv.configNow = configNow
+		kv.configTo = configTo
+		kv.shardValid = shardValid
 		//kv.configInit = configInit
+		DPrintf("shardserver:%v, get value from snapshot:\n", kv.logHead)
+		DPrintln(kv.Table)
+		DPrintln(kv.configNow)
+		DPrintln(kv.configTo)
 	}
 
 	//DPrintf("shardserver:%v, after makeTableFromSnapshot, table:", kv.logHead)
@@ -709,13 +760,17 @@ type ChanStruct struct {
 }
 
 //操作类似于get,至于对方配置修改的工作,想办法交个pullShard来做,就不由这个rpc来让对方处理了
-func (kv *ShardKV) pullShardRpc(groups map[int][]string, gid int, shards []int, ch chan ChanStruct) {
+func (kv *ShardKV) pullShardRpc(groups map[int][]string, gid int, shards []int, ch chan ChanStruct, c shardmaster.Config) {
 	fmt.Printf("shardserver:%v pullshardrpc start:", kv.logHead)
 	fmt.Println(gid)
 	fmt.Println(shards)
+	fmt.Println(groups)
 	var ret ChanStruct
 
-	defer func() { ch <- ret }()
+	defer func() {
+		fmt.Printf("shardserver:%v in defer\n", kv.logHead)
+		ch <- ret
+	}()
 
 	var args TransShardArgs
 	args.Gid = gid
@@ -758,6 +813,33 @@ func (kv *ShardKV) pullShardRpc(groups map[int][]string, gid int, shards []int, 
 							}
 						}
 						ret.configNum = reply.ConfigNum
+
+						var op Op
+						op.Op = "RefreshConfig"
+						op.Ts = time.Now().UnixNano() / 1000000
+						op.Config = c
+						op.Table = make(map[int]map[string]string)
+						for k1, v1 := range ret.table {
+							op.Table[k1] = make(map[string]string)
+							for k2, v2 := range v1 {
+								op.Table[k1][k2] = v2
+							}
+						}
+						//这里思考加锁,其实是把向raft提交日志顺序化了,我当前这种阻塞等待消息返回的模式,也只这样
+						kv.mu.Lock()
+
+						var err Err
+						kv.processRaft(op, &err)
+
+						DPrintf("shardserver:%v, in pullshard after raft", kv.logHead)
+
+						if err == OK && kv.rf.Persister.RaftStateSize() > kv.maxraftstate {
+							DPrintf("shardserver:%v, RaftStateSize larggeer than the limit: %d, %d \n", kv.logHead, kv.rf.Persister.RaftStateSize(), kv.maxraftstate)
+							kv.makeSnapshot(-1)
+						}
+
+						kv.mu.Unlock()
+
 						return
 					} else if reply.Err == ErrRaftTimeout { //超时也有可能是成功的吧?
 						DPrintf("shardserver:%v pullshardrpc to %v raft timeout\n", kv.logHead, servers[si])
@@ -783,7 +865,7 @@ func (kv *ShardKV) pullShardRpc(groups map[int][]string, gid int, shards []int, 
 }
 
 //目的是拿到一个shrad为key的小table
-func (kv *ShardKV) pullShard(groups map[int][]string, gidShard map[int][]int) map[int]map[string]string {
+func (kv *ShardKV) pullShard(groups map[int][]string, gidShard map[int][]int, c shardmaster.Config) map[int]map[string]string {
 	fmt.Printf("shardserver:%v pullshard start", kv.logHead)
 	fmt.Println(gidShard)
 
@@ -793,7 +875,7 @@ func (kv *ShardKV) pullShard(groups map[int][]string, gidShard map[int][]int) ma
 	for k, _ := range gidShard {
 		if len(gidShard[k]) > 0 {
 			gidChan[k] = make(chan ChanStruct)
-			go kv.pullShardRpc(groups, k, gidShard[k], gidChan[k]) //shard全发过去了
+			go kv.pullShardRpc(groups, k, gidShard[k], gidChan[k], c) //shard全发过去了
 		}
 	}
 
@@ -803,11 +885,16 @@ func (kv *ShardKV) pullShard(groups map[int][]string, gidShard map[int][]int) ma
 		return shardData
 	}
 
+	//不错,这是个大bug,如果是循环接收,那前边的ch不返回,后边的也就阻塞了
+	//---直接在rpc里执行raft吧,我这个函数依然要继续阻塞
 	for _, v := range gidChan { //每个chan都要接收
-		tmp := <-v
-		for k2, v2 := range tmp.table {
-			shardData[k2] = v2
-		}
+		_ = <-v
+
+		/*
+			for k2, v2 := range tmp.table {
+				shardData[k2] = v2 //没注意到的地方其实偷偷做浅拷贝了
+			}
+		*/
 	}
 
 	DPrintf("shardserver:%v, pullshard over:", kv.logHead)
@@ -824,7 +911,10 @@ func (kv *ShardKV) makeGroups(configs []shardmaster.Config) map[int][]string {
 	for _, v := range configs {
 		for k2, v2 := range v.Groups {
 			if _, ok := ret[k2]; !ok {
-				ret[k2] = v2
+				//ret[k2] = v2
+				for _, v3 := range v2 {
+					ret[k2] = append(ret[k2], v3)
+				}
 			}
 		}
 	}
@@ -846,6 +936,8 @@ func (kv *ShardKV) QueryConfigRoutine() {
 
 		configNumNow := kv.configNow.Num //初始化为0啦
 
+		//在此处做跳步限制,每次只提升一个配置num
+		//---应对last 2,会在下边调用pullShard时,进而rpc调用时阻塞住,所以此配置不更新完成不会更进一步
 		c := kv.smClient.Query(configNumNow + 1) //初始这个num要是0
 
 		//这个判断会包含第一次实际拉到空配置的情况,
@@ -858,7 +950,7 @@ func (kv *ShardKV) QueryConfigRoutine() {
 		DPrintf("shardserver:%v, query new config:", kv.logHead)
 		DPrintln(c)
 
-		shardData := make(map[int]map[string]string)
+		//shardData := make(map[int]map[string]string)
 
 		//没初始化没有新旧配置对比
 		//---初始状态下我需要去拉去配置,但此时应该没有数据,不用考虑数据的迁移
@@ -869,6 +961,23 @@ func (kv *ShardKV) QueryConfigRoutine() {
 		//if !kv.configInit {
 		//	kv.configInit = true
 		if c.Num == 1 {
+			var op Op
+			op.Op = "RefreshConfig"
+			op.Ts = time.Now().UnixNano() / 1000000
+			op.Config = c
+			op.Table = make(map[int]map[string]string)
+
+			kv.mu.Lock()
+
+			var err Err
+			kv.processRaft(op, &err)
+
+			if err == OK && kv.rf.Persister.RaftStateSize() > kv.maxraftstate {
+				DPrintf("shardserver:%v, RaftStateSize larggeer than the limit: %d, %d \n", kv.logHead, kv.rf.Persister.RaftStateSize(), kv.maxraftstate)
+				kv.makeSnapshot(-1)
+			}
+
+			kv.mu.Unlock()
 
 		} else {
 			//如果需要向别的group迁移数据则迁之
@@ -876,12 +985,19 @@ func (kv *ShardKV) QueryConfigRoutine() {
 			shard2 := make(map[int]bool)
 			gidShard := make(map[int][]int) //要从哪些gid拉哪些shard的数据
 
+			var op Op
+			op.Op = "RefreshConfig"
+			op.Ts = time.Now().UnixNano() / 1000000
+			op.Config = c
+			op.Table = make(map[int]map[string]string)
+
 			//分别拿出新旧配置的本群负责的shard
 			for i, v := range kv.configNow.Shards {
 				if v == kv.gid {
 					shard1[i] = true
 				}
 			}
+
 			for i, v := range c.Shards {
 				if v == kv.gid {
 					shard2[i] = true
@@ -898,54 +1014,84 @@ func (kv *ShardKV) QueryConfigRoutine() {
 					}
 
 					gidShard[gid] = append(gidShard[gid], k1)
+				} else {
+					op.Table[k1] = make(map[string]string)
+
+					for k2, v2 := range kv.Table[k1] {
+						op.Table[k1][k2] = v2
+					}
 				}
 			}
 
+			//提价此次保留的在新配置依然能提供服务的数据
+			if len(op.Table) > 0 {
+
+				kv.mu.Lock()
+
+				var err Err
+				kv.processRaft(op, &err)
+
+				if err == OK && kv.rf.Persister.RaftStateSize() > kv.maxraftstate {
+					DPrintf("shardserver:%v, RaftStateSize larggeer than the limit: %d, %d \n", kv.logHead, kv.rf.Persister.RaftStateSize(), kv.maxraftstate)
+					kv.makeSnapshot(-1)
+				}
+
+				kv.mu.Unlock()
+			}
 			DPrintf("shardserver:%v, after compute, gidshards:", kv.logHead)
 			DPrintln(gidShard)
 
 			var configs []shardmaster.Config
 			configs = append(configs, kv.configNow)
 			configs = append(configs, c)
+			groups := kv.makeGroups(kv.configHistory)
 
-			//groups := kv.makeGroups(kv.configs)
-			groups := kv.makeGroups(configs)
+			DPrintf("shardserver:%v, groups:", kv.logHead)
+			DPrintln(groups)
+			DPrintln(configs)
+			DPrintln(kv.configNow)
+			DPrintln(c)
+
 			if len(gidShard) > 0 {
-				shardData = kv.pullShard(groups, gidShard)
-			}
-		}
-
-		//这边先处理数据,再raft,因为需要在raft日志中写入需要扩散到follower的数据
-		//---此时数据都是拉到的,所以这个raft日志包含的意义是数据已经完备了
-		var op Op
-		op.Op = "RefreshConfig"
-		op.Ts = time.Now().UnixNano() / 1000000
-		op.Config = c
-		//op.Table = shardData //备机怎么读是个问题啊
-		op.Table = make(map[int]map[string]string)
-		for k1, v1 := range shardData {
-			if _, ok := op.Table[k1]; !ok {
-				op.Table[k1] = make(map[string]string)
+				//shardData = kv.pullShard(groups, gidShard, c)
+				kv.pullShard(groups, gidShard, c)
 			}
 
-			for k2, v2 := range v1 {
-				op.Table[k1][k2] = v2
+		}
+		/*
+			//这边先处理数据,再raft,因为需要在raft日志中写入需要扩散到follower的数据
+			//---此时数据都是拉到的,所以这个raft日志包含的意义是数据已经完备了
+			var op Op
+			op.Op = "RefreshConfig"
+			op.Ts = time.Now().UnixNano() / 1000000
+			op.Config = c
+			//op.Table = shardData //备机怎么读是个问题啊
+			op.Table = make(map[int]map[string]string)
+			for k1, v1 := range shardData {
+				if _, ok := op.Table[k1]; !ok {
+					op.Table[k1] = make(map[string]string)
+				}
+
+				for k2, v2 := range v1 {
+					op.Table[k1][k2] = v2
+				}
 			}
-		}
 
-		//这里思考加锁,其实是把向raft提交日志顺序化了,我当前这种阻塞等待消息返回的模式,也只这样
-		kv.mu.Lock()
-		DPrintf("shardserver:%v, in queryconfig after lock\n", kv.logHead)
+			//这里思考加锁,其实是把向raft提交日志顺序化了,我当前这种阻塞等待消息返回的模式,也只这样
 
-		var err Err
-		kv.processRaft(op, &err)
+				kv.mu.Lock()
+				DPrintf("shardserver:%v, in queryconfig after lock\n", kv.logHead)
 
-		if err == OK && kv.rf.Persister.RaftStateSize() > kv.maxraftstate {
-			DPrintf("shardserver:%v, RaftStateSize larggeer than the limit: %d, %d \n", kv.logHead, kv.rf.Persister.RaftStateSize(), kv.maxraftstate)
-			kv.makeSnapshot(-1)
-		}
+				var err Err
+				kv.processRaft(op, &err)
 
-		kv.mu.Unlock()
+				if err == OK && kv.rf.Persister.RaftStateSize() > kv.maxraftstate {
+					DPrintf("shardserver:%v, RaftStateSize larggeer than the limit: %d, %d \n", kv.logHead, kv.rf.Persister.RaftStateSize(), kv.maxraftstate)
+					kv.makeSnapshot(-1)
+				}
+
+				kv.mu.Unlock()
+		*/
 
 		time.Sleep(time.Duration(50 * 1000 * 1000)) //关于睡眠的必要性,在分区的情况下,你不睡的话那就完全空跑了
 	}
